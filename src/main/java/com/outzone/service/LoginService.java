@@ -1,11 +1,16 @@
 package com.outzone.service;
 
+import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.outzone.entity.LoginUser;
+import com.outzone.entity.ResponseResult;
 import com.outzone.entity.TimeLongValue;
+import com.outzone.entity.User;
 import com.outzone.mapper.MenuMapper;
 import com.outzone.mapper.UserMapper;
 import com.outzone.mapper.UserRoleMapper;
+import com.outzone.util.JwtUtil;
+import com.outzone.util.RedisUtil;
 import com.outzone.util.VerifiCodeUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -14,12 +19,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import com.outzone.cache.InfoInRedisCache;
-import com.outzone.entity.ResponseResult;
-import com.outzone.entity.User;
-import com.outzone.util.JwtUtil;
-
+import javax.annotation.Resource;
+import javax.mail.MessagingException;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.Date;
@@ -28,10 +31,8 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Resource;
-import javax.mail.MessagingException;
-
 @Service
+@Transactional
 public class LoginService{
 
 
@@ -40,7 +41,7 @@ public class LoginService{
     private AuthenticationManager authenticationManager;
 
     @Resource
-    private InfoInRedisCache inRedisCache;
+    private RedisUtil redisUtil;
     @Resource
     UserMapper userMapper;
     @Resource
@@ -51,7 +52,7 @@ public class LoginService{
     MailService mailService;
     public ResponseResult register(User registerUser) {
         ResponseResult reigisterResponse = new ResponseResult(HttpStatus.OK.value(),"注册成功");
-        if(inRedisCache.getCacheObject("registerCode:"+registerUser.getMailAddress())
+        if(redisUtil.getCacheObject("registerCode:"+registerUser.getMailAddress())
                 != registerUser.getVerificationCode()){
             reigisterResponse.setCode(HttpStatus.PRECONDITION_FAILED.value());
             reigisterResponse.setMsg("验证码错误");
@@ -82,7 +83,8 @@ public class LoginService{
         String jwt = JwtUtil.createJWT(loginUUID, TimeLongValue.Month);
         HashMap<String,String> map = new HashMap<>();
         map.put("token", jwt);
-        inRedisCache.setCacheObject("login:"+loginUUID,registerLogin,30, TimeUnit.DAYS);
+
+        redisUtil.setCacheObject("login:"+loginUUID, JSONObject.toJSONString(registerLogin),30, TimeUnit.DAYS);
         reigisterResponse.setData(map);
         return reigisterResponse;
 
@@ -94,7 +96,7 @@ public class LoginService{
         LoginUser user = (LoginUser) authentication.getPrincipal();
         String userUUID  = user.getUser().getUUID();
         //删除redis中的值
-        inRedisCache.deleteObject("login:"+userUUID);
+        redisUtil.deleteObject("login:"+userUUID);
 
         return new ResponseResult(HttpStatus.OK.value(), "登出成功");
     }
@@ -118,7 +120,10 @@ public class LoginService{
         HashMap<String,String> map = new HashMap<>();
         map.put("token", jwt);
         //把完整的用户信息存入redis
-        inRedisCache.setCacheObject("login:"+loginUUID,loginUser,30, TimeUnit.DAYS);
+
+
+        System.out.println(loginUser);
+        redisUtil.setCacheObject("login:"+loginUUID, JSONObject.toJSONString(loginUser),30, TimeUnit.DAYS);
 
         return new ResponseResult<>(HttpStatus.OK.value(), "登陆成功",map);
     }
@@ -145,7 +150,7 @@ public class LoginService{
 
         }
         String registerCode = VerifiCodeUtil.generateVerifiCode();
-        inRedisCache.setCacheObject("registerMail:"+registerUser.getMailAddress(),registerCode,5,TimeUnit.MINUTES);
+        redisUtil.setCacheObject("registerMail:"+registerUser.getMailAddress(),registerCode,5,TimeUnit.MINUTES);
         mailService.sendTemplateMessage("OutZone注册验证码",registerUser.getMailAddress(),registerCode,"新用户");
         return  registerCodeResponse;
     }

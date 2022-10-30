@@ -5,7 +5,7 @@ package com.outzone.config;
 import com.outzone.filter.JwtAuthenticationTokenFilter;
 import com.outzone.handler.AccessDeniedHandlerImpl;
 import com.outzone.handler.AuthenticationEntryPointImpl;
-        import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
@@ -13,11 +13,10 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-        import javax.annotation.Resource;
+import javax.annotation.Resource;
 
 
 @Configuration
@@ -46,7 +45,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter{
                 .and()
                 .authorizeRequests()
                 // 对于登录接口 允许匿名访问
-                .antMatchers("/user/login","/user/register","/user/registerCode","/file//upload").anonymous()
+                .antMatchers("/user/login","/user/register","/user/registerCode","/file//upload","/file/**").anonymous()
 //                .antMatchers("/testCors").hasAuthority("system:dept:list222")
                 // 除上面外的所有请求全部需要鉴权认证
                 .anyRequest().authenticated()

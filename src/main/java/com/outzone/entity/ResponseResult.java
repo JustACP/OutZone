@@ -3,9 +3,11 @@ package com.outzone.entity;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
+import java.io.Serializable;
+
 @Data
 @Accessors(chain = true)
-public class ResponseResult<T>{
+public class ResponseResult<T>implements Serializable {
     private int code;
     private String msg;
     private T data;

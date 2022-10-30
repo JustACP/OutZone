@@ -1,6 +1,6 @@
 package com.outzone.handler;
 
-import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson2.JSON;
 import com.outzone.entity.ResponseResult;
 import com.outzone.util.ResponseUtill;
 import org.springframework.http.HttpStatus;
@@ -18,6 +18,7 @@ public class AccessDeniedHandlerImpl implements AccessDeniedHandler {
     public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException) throws IOException, ServletException {
         ResponseResult authDeniedResult = new ResponseResult(HttpStatus.FORBIDDEN.value(), "无权访问");
         String responseString = JSON.toJSONString(authDeniedResult);
+
         ResponseUtill.renderString(response,responseString);
     }
 }

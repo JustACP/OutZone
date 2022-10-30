@@ -4,15 +4,18 @@ import org.apache.ibatis.cache.Cache;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 
+import javax.annotation.Resource;
+
 public class RedisMybatisCache implements Cache {
 
     public final String id;
-    public static RedisTemplate<Object,Object> template;
+    @Resource
+    public static RedisTemplate<String,Object> template;
 
     public RedisMybatisCache(String id) {
         this.id = id;
     }
-    public static void setTemplate(RedisTemplate<Object,Object> template){
+    public static void setTemplate(RedisTemplate<String,Object> template){
         RedisMybatisCache.template = template;
     }
     @Override
@@ -22,7 +25,7 @@ public class RedisMybatisCache implements Cache {
 
     @Override
     public void putObject(Object o, Object o1) {
-        template.opsForValue().set(o,o1);
+        template.opsForValue().set((String) o,o1);
     }
 
     @Override
@@ -32,7 +35,7 @@ public class RedisMybatisCache implements Cache {
 
     @Override
     public Object removeObject(Object o) {
-        return template.delete(o);
+        return template.delete((String) o);
     }
 
     @Override

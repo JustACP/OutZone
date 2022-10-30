@@ -1,8 +1,9 @@
 package com.outzone.filter;
 
-import com.outzone.cache.InfoInRedisCache;
+import com.alibaba.fastjson2.JSONObject;
 import com.outzone.entity.LoginUser;
 import com.outzone.util.JwtUtil;
+import com.outzone.util.RedisUtil;
 import io.jsonwebtoken.Claims;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,7 +23,7 @@ import java.util.Objects;
 public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
 
     @Resource
-    private InfoInRedisCache infoInRedisCache;
+    private RedisUtil redisUtil;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -48,7 +49,7 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
         //从redis里面获取信息
         String redisKey = "login:" + userUUID;
 
-        LoginUser loginUser = infoInRedisCache.getCacheObject(redisKey);
+        LoginUser loginUser = JSONObject.parseObject(redisUtil.getCacheObject(redisKey),LoginUser.class);
         if(Objects.isNull(loginUser)){
             throw new RuntimeException("用户未登陆");
         }

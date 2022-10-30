@@ -1,17 +1,18 @@
 package com.outzone.util;
 
-import java.sql.Date;
-import java.util.UUID;
-
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import java.util.Base64;
+import org.springframework.stereotype.Component;
 
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.sql.Date;
+import java.util.Base64;
+import java.util.UUID;
+
+@Component
 public class JwtUtil {
     public static final Long JWT_TTL = 60 * 60 * 1000L; //60 * 60 * 1000 一个小时
     public static final String JWT_KEY = "ttk213";// 密钥明文
