@@ -33,6 +33,7 @@ public class User implements Serializable {
     Timestamp registerTime;
     @TableField(value = "role")
     String role;
+    String icon;
 
     @TableField(exist = false)
     private String UUID;

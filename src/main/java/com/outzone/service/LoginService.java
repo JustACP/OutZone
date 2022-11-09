@@ -62,7 +62,7 @@ public class LoginService{
 
 
         //设置注册用户的基本信息 等待下一步验证
-
+        redisUtil.deleteObject("registerCode:"+registerUser.getMailAddress());
         registerUser.setPassword(new BCryptPasswordEncoder().encode(registerUser.getPassword()));
         Timestamp nowDateTime = new Timestamp(new Date().getTime());
         registerUser.setRegisterTime(nowDateTime);
@@ -91,6 +91,7 @@ public class LoginService{
     }
 
     public ResponseResult logout() {
+
         //获取 ContextHolder中的用户 id
         UsernamePasswordAuthenticationToken authentication = (UsernamePasswordAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
         LoginUser user = (LoginUser) authentication.getPrincipal();

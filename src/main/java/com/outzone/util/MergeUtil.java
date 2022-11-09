@@ -1,6 +1,6 @@
 package com.outzone.util;
 
-import com.outzone.entity.FileInfo;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.*;
 
+@Slf4j
 public class MergeUtil {
     /**
      * 判断上传分片目录是否存在, 不存在就创建
@@ -32,7 +33,7 @@ public class MergeUtil {
      * */
     public static File mergeFile(String uploadPath,String chunkPath,String mergePath,String fileName){
         File file = new File(chunkPath);
-
+        log.info("开始合并");
         List<File> chunkFileList = chunkFileList(file);
         File fileTemp = new File(mergePath);
         if(!fileTemp.exists()){
@@ -73,6 +74,7 @@ public class MergeUtil {
             throw new RuntimeException(e);
 
         }
+        log.info("合并完成");
         return mergeFile;
     }
 

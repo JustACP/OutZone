@@ -1,16 +1,14 @@
 package com.outzone.controller;
 
-import com.outzone.entity.FileInfo;
 import com.outzone.entity.MultipartFileParams;
 import com.outzone.entity.ResponseResult;
+import com.outzone.entity.UploadFileInfo;
 import com.outzone.service.FileUploadService;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
-import java.util.HashMap;
+import java.io.IOException;
 
 @Controller
 @RequestMapping("/file")
@@ -24,15 +22,15 @@ public class FileController {
     /**
      * 上传前调用(只调一次)，判断文件是否已经被上传完成，如果是，跳过，
      * 如果不是，判断是否传了一半，如果是，将缺失的分片编号返回，让前端传输缺失的分片即可
-     *
-     * @param file 文件参数
-     * @return
      */
-    @GetMapping("/upload")
-    public ResponseResult<HashMap> uploadCheck(MultipartFileParams file){
+    @GetMapping("/checkFile")
+    @ResponseBody
+    public ResponseResult checkFile (@RequestBody  String JSONString) throws IOException {
 
-        return fileUploadService.uploadCheck(file);
+        return fileUploadService.checkFile(JSONString);
     }
+
+
     /**
      * 上传调用
      *
@@ -40,6 +38,7 @@ public class FileController {
      * @return
      */
     @PostMapping("/upload")
+    @ResponseBody
     public ResponseResult upload(MultipartFileParams file){
 
         return fileUploadService.upload(file);
@@ -48,8 +47,9 @@ public class FileController {
     /**
      * 上传完成调用，进行分片文件合并
      */
-    @PostMapping("/upload-success")
-    public ResponseResult uploadSuccess(FileInfo file){
+    @PostMapping("/mergeQQ")
+    @ResponseBody
+    public ResponseResult uploadSuccess(UploadFileInfo file){
         return fileUploadService.uploadSuccess(file);
     }
 //    @RequestMapping("/upload1")

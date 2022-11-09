@@ -4,6 +4,7 @@ import com.outzone.entity.LoginUser;
 import com.outzone.entity.ResponseResult;
 import com.outzone.entity.User;
 import com.outzone.service.LoginService;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -15,7 +16,10 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.annotation.Resource;
 import javax.mail.MessagingException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Objects;
 
 @Controller
 @RequestMapping("/user")
@@ -29,8 +33,13 @@ public class UserController {
 
     @RequestMapping("/login")
     @ResponseBody
-    public ResponseResult login(@RequestBody User user){
-        System.out.println(user.toString());
+    public ResponseResult login(@RequestBody User user, HttpServletRequest request,HttpServletResponse response){
+        String token  = request.getHeader("token");
+        if(!Objects.isNull(token)){
+            SecurityContext context = SecurityContextHolder.getContext();
+            LoginUser isLogined = (LoginUser) context.getAuthentication().getPrincipal();
+            if(!isLogined.getPermissions().isEmpty()) return new ResponseResult(HttpStatus.FORBIDDEN.value(), "禁止再次登陆");
+        }
 
         return loginService.login(user);
     }
