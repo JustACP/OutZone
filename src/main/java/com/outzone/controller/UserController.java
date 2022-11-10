@@ -1,8 +1,8 @@
 package com.outzone.controller;
 
-import com.outzone.entity.LoginUser;
-import com.outzone.entity.ResponseResult;
-import com.outzone.entity.User;
+import com.outzone.pojo.LoginUserVO;
+import com.outzone.pojo.ResponseResult;
+import com.outzone.pojo.UserDTO;
 import com.outzone.service.LoginService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -33,15 +33,15 @@ public class UserController {
 
     @RequestMapping("/login")
     @ResponseBody
-    public ResponseResult login(@RequestBody User user, HttpServletRequest request,HttpServletResponse response){
+    public ResponseResult login(@RequestBody UserDTO userDTO, HttpServletRequest request, HttpServletResponse response){
         String token  = request.getHeader("token");
         if(!Objects.isNull(token)){
             SecurityContext context = SecurityContextHolder.getContext();
-            LoginUser isLogined = (LoginUser) context.getAuthentication().getPrincipal();
+            LoginUserVO isLogined = (LoginUserVO) context.getAuthentication().getPrincipal();
             if(!isLogined.getPermissions().isEmpty()) return new ResponseResult(HttpStatus.FORBIDDEN.value(), "禁止再次登陆");
         }
 
-        return loginService.login(user);
+        return loginService.login(userDTO);
     }
 
     @RequestMapping("/logout")
@@ -57,27 +57,27 @@ public class UserController {
     public String hello(){
         SecurityContext context = SecurityContextHolder.getContext();
         Authentication authentication = context.getAuthentication();
-        LoginUser user  = (LoginUser) authentication.getPrincipal();
-        System.out.println(user.getUser().toString());
+        LoginUserVO user  = (LoginUserVO) authentication.getPrincipal();
+        System.out.println(user.getUserDTO().toString());
         return "{msg:\"hello\"}";
     }
 
     @RequestMapping(value = "/register")
     @ResponseBody
-    public ResponseResult register(@RequestBody User registerUser){
-        registerUser.setStatus(0).setRole("user");
-        return loginService.register(registerUser);
+    public ResponseResult register(@RequestBody UserDTO registerUserDTO){
+        registerUserDTO.setStatus(0).setRole("user");
+        return loginService.register(registerUserDTO);
 
     }
 
     @PostMapping("/registerCode")
     @ResponseBody
-    public ResponseResult verifiCode(@RequestBody User registerUser) throws MessagingException, IOException {
+    public ResponseResult verifiCode(@RequestBody UserDTO registerUserDTO) throws MessagingException, IOException {
         SecurityContext context = SecurityContextHolder.getContext();
-        User loginUser = (User) context.getAuthentication().getPrincipal();
-        System.out.println(loginUser.getUsername());
+        UserDTO loginUserDTO = (UserDTO) context.getAuthentication().getPrincipal();
+        System.out.println(loginUserDTO.getUsername());
 
-        return loginService.sendRegisterCode(registerUser);
+        return loginService.sendRegisterCode(registerUserDTO);
     }
 
 }

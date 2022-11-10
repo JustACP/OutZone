@@ -1,4 +1,4 @@
-package com.outzone.entity;
+package com.outzone.pojo;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -17,7 +17,7 @@ import java.sql.Timestamp;
 @AllArgsConstructor
 @Accessors(chain = true)
 @TableName(value = "user")
-public class User implements Serializable {
+public class UserDTO implements Serializable {
 
     @TableId(type = IdType.ASSIGN_ID)
     Long id;

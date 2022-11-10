@@ -1,4 +1,4 @@
-package com.outzone.entity;
+package com.outzone.pojo;
 
 import lombok.Data;
 import lombok.experimental.Accessors;

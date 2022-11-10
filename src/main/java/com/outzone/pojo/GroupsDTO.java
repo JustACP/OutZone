@@ -1,4 +1,4 @@
-package com.outzone.entity;
+package com.outzone.pojo;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -6,7 +6,7 @@ import lombok.Data;
 
 @Data
 @TableName("groups")
-public class Groups {
+public class GroupsDTO {
     @TableField("groupId")
     long groupId;
 
@@ -14,4 +14,6 @@ public class Groups {
     long userId;
     @TableField("groupName")
     String groupName;
+
+    String role;
 }

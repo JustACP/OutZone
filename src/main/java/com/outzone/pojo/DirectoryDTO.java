@@ -1,4 +1,4 @@
-package com.outzone.entity;
+package com.outzone.pojo;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Directory {
+public class DirectoryDTO {
     @TableField("directoryId")
     long directoryId;
     @TableField("parentDirectoryId")

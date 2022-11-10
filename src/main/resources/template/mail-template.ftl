@@ -34,7 +34,7 @@
                     <h2 style="margin: 5px 0px; ">
                         <font color="#333333" style="line-height: 20px; ">
                             <font style="line-height: 22px; " size="4">
-                                Dear user:</font>
+                                Dear userDTO:</font>
                         </font>
                     </h2>
                     <p>Hello! Thanks for using #product, your account is being authenticated by email, the

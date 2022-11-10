@@ -1,7 +1,7 @@
 package com.outzone.filter;
 
 import com.alibaba.fastjson2.JSONObject;
-import com.outzone.entity.LoginUser;
+import com.outzone.pojo.LoginUserVO;
 import com.outzone.util.JwtUtil;
 import com.outzone.util.RedisUtil;
 import io.jsonwebtoken.Claims;
@@ -49,13 +49,13 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
         //从redis里面获取信息
         String redisKey = "login:" + userUUID;
 
-        LoginUser loginUser = JSONObject.parseObject(redisUtil.getCacheObject(redisKey),LoginUser.class);
-        if(Objects.isNull(loginUser)){
+        LoginUserVO loginUserVO = JSONObject.parseObject(redisUtil.getCacheObject(redisKey), LoginUserVO.class);
+        if(Objects.isNull(loginUserVO)){
             throw new RuntimeException("用户未登陆");
         }
         //存入secuirityContextHolder
         //获取权限信息封装到Authentication
-        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(loginUser,null,loginUser.getAuthorities());
+        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(loginUserVO,null, loginUserVO.getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(authenticationToken);
         // 这里放行是因为Context里面已经有了用户信息不用害怕了
         filterChain.doFilter(request,response);

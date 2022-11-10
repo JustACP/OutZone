@@ -1,4 +1,4 @@
-package com.outzone.entity;
+package com.outzone.pojo;
 
 public class TimeLongValue {
     public static  final long Second = (long) 1000;

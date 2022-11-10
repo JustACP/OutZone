@@ -1,4 +1,4 @@
-package com.outzone.entity;
+package com.outzone.pojo;
 
 import com.alibaba.fastjson.annotation.JSONField;
 import lombok.AllArgsConstructor;
@@ -15,8 +15,8 @@ import java.util.stream.Collectors;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class LoginUser implements UserDetails{
-    private User user;
+public class LoginUserVO implements UserDetails{
+    private UserDTO userDTO;
 
 
     //储存权限信息
@@ -26,8 +26,8 @@ public class LoginUser implements UserDetails{
     private List<String> permissions;
 
 
-    public LoginUser(User user,List<String> permissions) {
-        this.user = user;
+    public LoginUserVO(UserDTO userDTO, List<String> permissions) {
+        this.userDTO = userDTO;
         this.permissions = permissions;
     }
 
@@ -50,13 +50,13 @@ public class LoginUser implements UserDetails{
     public String getPassword() {
 
 
-        return user.getPassword();
+        return userDTO.getPassword();
     }
 
     @Override
     public String getUsername() {
 
-        return user.getUsername();
+        return userDTO.getUsername();
     }
 
     @Override

@@ -1,14 +1,14 @@
 package com.outzone.service;
 
-import com.outzone.entity.LoginUser;
+import com.outzone.pojo.LoginUserVO;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 @Service
 public class SecurityContextService {
 
-    public LoginUser getUserFromContext(){
-        return (LoginUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    public LoginUserVO getUserFromContext(){
+        return (LoginUserVO) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 
 }

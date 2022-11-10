@@ -1,10 +1,13 @@
 package com.outzone.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.outzone.entity.GroupFile;
+import com.outzone.pojo.ContentVO;
+import com.outzone.pojo.GroupFileDTO;
 import org.apache.ibatis.annotations.Mapper;
 
-@Mapper
-public interface GroupFileMapper extends BaseMapper<GroupFile> {
+import java.util.List;
 
+@Mapper
+public interface GroupFileMapper extends BaseMapper<GroupFileDTO> {
+    List<ContentVO> getGroupFileList(String absolutePath, Long groupId);
 }

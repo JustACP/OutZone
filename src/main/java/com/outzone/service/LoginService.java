@@ -2,13 +2,13 @@ package com.outzone.service;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.outzone.entity.LoginUser;
-import com.outzone.entity.ResponseResult;
-import com.outzone.entity.TimeLongValue;
-import com.outzone.entity.User;
 import com.outzone.mapper.MenuMapper;
 import com.outzone.mapper.UserMapper;
 import com.outzone.mapper.UserRoleMapper;
+import com.outzone.pojo.LoginUserVO;
+import com.outzone.pojo.ResponseResult;
+import com.outzone.pojo.TimeLongValue;
+import com.outzone.pojo.UserDTO;
 import com.outzone.util.JwtUtil;
 import com.outzone.util.RedisUtil;
 import com.outzone.util.VerifiCodeUtil;
@@ -50,10 +50,10 @@ public class LoginService{
     UserRoleMapper userRoleMapper;
     @Resource
     MailService mailService;
-    public ResponseResult register(User registerUser) {
+    public ResponseResult register(UserDTO registerUserDTO) {
         ResponseResult reigisterResponse = new ResponseResult(HttpStatus.OK.value(),"注册成功");
-        if(redisUtil.getCacheObject("registerCode:"+registerUser.getMailAddress())
-                != registerUser.getVerificationCode()){
+        if(redisUtil.getCacheObject("registerCode:"+ registerUserDTO.getMailAddress())
+                != registerUserDTO.getVerificationCode()){
             reigisterResponse.setCode(HttpStatus.PRECONDITION_FAILED.value());
             reigisterResponse.setMsg("验证码错误");
             return reigisterResponse;
@@ -62,24 +62,24 @@ public class LoginService{
 
 
         //设置注册用户的基本信息 等待下一步验证
-        redisUtil.deleteObject("registerCode:"+registerUser.getMailAddress());
-        registerUser.setPassword(new BCryptPasswordEncoder().encode(registerUser.getPassword()));
+        redisUtil.deleteObject("registerCode:"+ registerUserDTO.getMailAddress());
+        registerUserDTO.setPassword(new BCryptPasswordEncoder().encode(registerUserDTO.getPassword()));
         Timestamp nowDateTime = new Timestamp(new Date().getTime());
-        registerUser.setRegisterTime(nowDateTime);
-        registerUser.setStatus(1);
-        userMapper.insert(registerUser);
-        userRoleMapper.setUserRole(registerUser.getId(),2L);
+        registerUserDTO.setRegisterTime(nowDateTime);
+        registerUserDTO.setStatus(1);
+        userMapper.insert(registerUserDTO);
+        userRoleMapper.setUserRole(registerUserDTO.getId(),2L);
 
 
         //先登陆一手
         UsernamePasswordAuthenticationToken  authenticationToken =
-                new UsernamePasswordAuthenticationToken(registerUser.getUsername(), registerUser.getPassword());
+                new UsernamePasswordAuthenticationToken(registerUserDTO.getUsername(), registerUserDTO.getPassword());
 
         Authentication authenticate = authenticationManager.authenticate(authenticationToken);
 
-        LoginUser registerLogin = (LoginUser)  authenticate.getPrincipal();
-        registerLogin.getUser().setUUID(UUID.randomUUID().toString().replaceAll("-",""));
-        String loginUUID = registerLogin.getUser().getUUID();
+        LoginUserVO registerLogin = (LoginUserVO)  authenticate.getPrincipal();
+        registerLogin.getUserDTO().setUUID(UUID.randomUUID().toString().replaceAll("-",""));
+        String loginUUID = registerLogin.getUserDTO().getUUID();
         String jwt = JwtUtil.createJWT(loginUUID, TimeLongValue.Month);
         HashMap<String,String> map = new HashMap<>();
         map.put("token", jwt);
@@ -94,17 +94,17 @@ public class LoginService{
 
         //获取 ContextHolder中的用户 id
         UsernamePasswordAuthenticationToken authentication = (UsernamePasswordAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
-        LoginUser user = (LoginUser) authentication.getPrincipal();
-        String userUUID  = user.getUser().getUUID();
+        LoginUserVO user = (LoginUserVO) authentication.getPrincipal();
+        String userUUID  = user.getUserDTO().getUUID();
         //删除redis中的值
         redisUtil.deleteObject("login:"+userUUID);
 
         return new ResponseResult(HttpStatus.OK.value(), "登出成功");
     }
 
-    public ResponseResult login(User user) {
+    public ResponseResult login(UserDTO userDTO) {
         //AuthenticationManager authenticate进行用户认证
-        UsernamePasswordAuthenticationToken  authenticationToken = new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword());
+        UsernamePasswordAuthenticationToken  authenticationToken = new UsernamePasswordAuthenticationToken(userDTO.getUsername(), userDTO.getPassword());
 
         Authentication authenticate = authenticationManager.authenticate(authenticationToken);
     
@@ -114,35 +114,35 @@ public class LoginService{
         }
         //认证通过  , 使用userid生成jwt jwt存入ResponseResult
         
-        LoginUser loginUser = (LoginUser)  authenticate.getPrincipal();
-        loginUser.getUser().setUUID(UUID.randomUUID().toString().replaceAll("-",""));
-        String loginUUID = loginUser.getUser().getUUID();
+        LoginUserVO loginUserVO = (LoginUserVO)  authenticate.getPrincipal();
+        loginUserVO.getUserDTO().setUUID(UUID.randomUUID().toString().replaceAll("-",""));
+        String loginUUID = loginUserVO.getUserDTO().getUUID();
         String jwt = JwtUtil.createJWT(loginUUID, TimeLongValue.Month);
         HashMap<String,String> map = new HashMap<>();
         map.put("token", jwt);
         //把完整的用户信息存入redis
 
 
-        System.out.println(loginUser);
-        redisUtil.setCacheObject("login:"+loginUUID, JSONObject.toJSONString(loginUser),30, TimeUnit.DAYS);
+        System.out.println(loginUserVO);
+        redisUtil.setCacheObject("login:"+loginUUID, JSONObject.toJSONString(loginUserVO),30, TimeUnit.DAYS);
 
         return new ResponseResult<>(HttpStatus.OK.value(), "登陆成功",map);
     }
 
 
-    public ResponseResult sendRegisterCode(User registerUser) throws MessagingException, IOException {
+    public ResponseResult sendRegisterCode(UserDTO registerUserDTO) throws MessagingException, IOException {
         ResponseResult registerCodeResponse = new ResponseResult(HttpStatus.OK.value(),"发送成功");
         //判断邮箱 和 用户名是否被占用
-        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<User>();
-        queryWrapper.eq(User::getMailAddress,registerUser.getMailAddress())
+        LambdaQueryWrapper<UserDTO> queryWrapper = new LambdaQueryWrapper<UserDTO>();
+        queryWrapper.eq(UserDTO::getMailAddress, registerUserDTO.getMailAddress())
                 .or()
-                .eq(User::getUsername,registerUser.getUsername());
-        User isExist = userMapper.selectOne(queryWrapper);
+                .eq(UserDTO::getUsername, registerUserDTO.getUsername());
+        UserDTO isExist = userMapper.selectOne(queryWrapper);
 
         if(!Objects.isNull(isExist)){
             registerCodeResponse.setCode(HttpStatus.CONFLICT.value());
 
-            if(isExist.getUsername().equals(registerUser.getUsername())){
+            if(isExist.getUsername().equals(registerUserDTO.getUsername())){
                 registerCodeResponse.setMsg("用户名已存在");
             }else{
                 registerCodeResponse.setMsg("邮箱已使用");
@@ -151,8 +151,8 @@ public class LoginService{
 
         }
         String registerCode = VerifiCodeUtil.generateVerifiCode();
-        redisUtil.setCacheObject("registerMail:"+registerUser.getMailAddress(),registerCode,5,TimeUnit.MINUTES);
-        mailService.sendTemplateMessage("OutZone注册验证码",registerUser.getMailAddress(),registerCode,"新用户");
+        redisUtil.setCacheObject("registerMail:"+ registerUserDTO.getMailAddress(),registerCode,5,TimeUnit.MINUTES);
+        mailService.sendTemplateMessage("OutZone注册验证码", registerUserDTO.getMailAddress(),registerCode,"新用户");
         return  registerCodeResponse;
     }
 }

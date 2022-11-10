@@ -65,7 +65,9 @@ public class MergeUtil {
                     rafWrite.write(bytes);
                 }
                 rafRead.close();
+                chunkFile.delete();
             }
+            file.delete();
             rafWrite.close();
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);

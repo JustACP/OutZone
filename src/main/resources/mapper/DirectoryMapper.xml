@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.outzone.mapper.DirectoryMapper">
+
+    <select id="getDirList" resultMap="content">
+        SELECT
+            directory.name,directory.directoryId,directory.parentDirectoryId,directory.isGroupDirectory
+        FROM directory
+        where  directory.parentDirectoryId = (select directory.directoryId from directory where (directory.absolutePath = #{parentDirectory} AND directory.ownerId = #{ownerId} AND directory.isGroupDirectory = #{isGroup}));
+    </select>
+    <resultMap id="content" type="com.outzone.pojo.ContentVO">
+        <result column="name" property="name"/>
+        <result column="directoryId" property="id" />
+        <result column="parentDirectoryId" property="parentId"/>
+        <result column="isGroupDirectory" property="directoryType"/>
+    </resultMap>
+</mapper>

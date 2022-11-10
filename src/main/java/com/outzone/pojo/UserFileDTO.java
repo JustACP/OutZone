@@ -1,21 +1,23 @@
-package com.outzone.entity;
+package com.outzone.pojo;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 import java.sql.Timestamp;
 
+@TableName("user_file")
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 @Accessors(chain = true)
-@TableName("group_file")
-public class GroupFile {
+public class UserFileDTO {
     long id;
     @TableField("userId")
     long userId;
-    @TableField("groupId")
-    long groupId;
     @TableField("fileId")
     long fileId;
     @TableField("parentDirectoryId")
@@ -26,4 +28,5 @@ public class GroupFile {
     Timestamp uploadDate;
     @TableField("fileName")
     String fileName;
+
 }

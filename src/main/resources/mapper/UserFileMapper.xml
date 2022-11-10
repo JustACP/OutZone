@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.outzone.mapper.UserFileMapper">
+
+
+
+    <select id="getUserFileList" resultMap="content">
+        SELECT
+            user_file.fileName,file.fileSize,
+            user_file.id,user_file.parentDirectoryId,file.fileType
+        FROM user_file
+                 INNER JOIN file
+                            ON user_file.fileId = file.id
+        where (user_file.absolutePath = #{absolutePath} AND user_file.userId = #{userId});
+    </select>
+    <resultMap id="content" type="com.outzone.pojo.ContentVO">
+        <result column="fileName" property="name"/>
+        <result column="fileSize" property="size"/>
+        <result column="id" property="id" />
+        <result column="parentDirectoryId" property="parentId"/>
+        <result column="fileType" property="type" />
+    </resultMap>
+
+
+</mapper>

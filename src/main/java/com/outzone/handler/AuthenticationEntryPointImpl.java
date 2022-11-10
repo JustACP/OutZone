@@ -1,7 +1,7 @@
 package com.outzone.handler;
 
 import com.alibaba.fastjson.JSON;
-import com.outzone.entity.ResponseResult;
+import com.outzone.pojo.ResponseResult;
 import com.outzone.util.ResponseUtill;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.AuthenticationException;

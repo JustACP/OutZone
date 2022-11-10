@@ -1,9 +1,8 @@
 package com.outzone.service;
 
-import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.outzone.entity.*;
 import com.outzone.mapper.*;
+import com.outzone.pojo.*;
 import com.outzone.util.MergeUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -15,10 +14,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.sql.Timestamp;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Service
 public class FileUploadService{
@@ -40,15 +36,15 @@ public class FileUploadService{
     @Resource
     GroupMapper groupMapper;
 
-    public ResponseResult upload(MultipartFileParams fileParams){
+    public ResponseResult upload(MultipartFileParamsVO fileParams){
 
-        String filePath = uploadFilePath +"chunk/" +fileParams.getChunkNumber();
+        String filePath = uploadFilePath +fileParams.getIdentifier() +"/chunk/" +fileParams.getChunkNumber();
         File fileTemp = new File(filePath);
 
         File parentFile = fileTemp.getParentFile();
 
         if(!parentFile.exists()){
-            parentFile.mkdir();
+            parentFile.mkdirs();
         }
         try{
             MultipartFile file = fileParams.getFile();
@@ -60,10 +56,20 @@ public class FileUploadService{
         return new ResponseResult(HttpStatus.OK.value(), "分片上传成功");
     }
 
-    public ResponseResult<HashMap> uploadCheck(MultipartFileParams fileParams, HttpServletResponse response) throws IOException {
+    public ResponseResult checkFileAndChunks(MultipartFileParamsVO fileParamsVO, HttpServletResponse response,UserDTO userDTO){
+        ResponseResult responseResult = new ResponseResult<>();
+        if(checkFile(fileParamsVO,userDTO)){
+            responseResult.setCode(HttpStatus.OK.value());
+            responseResult.setMsg("文件已存在");
+            Map<String,Boolean> isSkip = new HashMap<>();
+            isSkip.put("isSkip",true);
+            responseResult.setData(isSkip);
+            uploadExistUserFile(fileParamsVO, userDTO);
+            return responseResult;
+        }
 
-        String fileDir = fileParams.getIdentifier();
-        String fileName = fileParams.getFilename();
+        String fileDir = fileParamsVO.getIdentifier();
+        String fileName = fileParamsVO.getFilename();
 
         // 分片目录
         String chunkPath = uploadFilePath  + fileDir+ "/chunk/";
@@ -72,40 +78,38 @@ public class FileUploadService{
         File file = new File(chunkPath);
         List<File> chunkFileList = MergeUtil.chunkFileList(file);
 
-        //合并后路径
-        String filePath = uploadFilePath+fileDir+"/"+fileName;
-        File fileMergeExist = new File(filePath);
 
         String[] temp;
-        boolean isExist = fileMergeExist.exists();
+
         if(chunkFileList ==null){
             temp = new String[0];
         }else{
             temp = new String[chunkFileList.size()];
-            //如果没有合并后文件，代表没有上传完成
-            //没上传完，如果有切片，保存已存在切片列表，否则不保存
-            if(!isExist && chunkFileList.size() >0){
+
+
+
+            if(chunkFileList.size() >0){
                 for(int i = 0;i<chunkFileList.size();i++){
                     temp[i] = chunkFileList.get(i).getName();//保存已存在文件列表
                 }
             }
         }
-        if(fileParams.getChunkNumber() == fileParams.getTotalChunks() && fileParams.getChunkNumber() != 0){
-            MergeUtil.mergeFile(uploadFilePath,uploadFilePath+"chunk/",uploadFilePath,fileParams.getFilename());
-        }
+
         HashMap<String,Object> hashMap = new HashMap<>();
-        hashMap.put("needSkiped",isExist);
-        hashMap.put("uploadList",temp);
-        response.setStatus(204);
-        response.getWriter().write("nofile");
-        return new ResponseResult<HashMap>(HttpStatus.OK.value(), "分片检查返回",hashMap);
+        hashMap.put("uploadedList",temp);
+
+        return new ResponseResult<HashMap>(HttpStatus.OK.value(), "已存在分片数",hashMap);
     }
+
+
+
+
 
     public ResponseResult uploadSuccess(UploadFileInfo uploadFileInfo){
 
-        String chunkPath = uploadFilePath+  uploadFileInfo.getUniqueIdentifier()+"chunk/";
-        String mergePath = uploadFilePath+ uploadFileInfo.getUniqueIdentifier() + "/";
-        File file = MergeUtil.mergeFile(uploadFilePath,chunkPath,mergePath, uploadFileInfo.getName());
+        String chunkPath = uploadFilePath+  uploadFileInfo.getIdentifier()+"/chunk/";
+        String mergePath = uploadFilePath+ uploadFileInfo.getIdentifier() + "/";
+        File file = MergeUtil.mergeFile(uploadFilePath,chunkPath,mergePath, uploadFileInfo.getFilename());
         if(file == null){
 
             return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "文件合并失败");
@@ -117,78 +121,144 @@ public class FileUploadService{
 
     /**
      * 检查文件是否已经存在
-     * @param JsonString
-     * @includ groupId ，如果为空则为用户文件
-     * @include fileMd5
-     * @include uploadCloudPath
-     * @include fileName
+     *
+     * @param fileParamsVO
      * @Author re1ife
-    **/
-    public ResponseResult checkFile(String JsonString){
-        String groupId = (String) JSONObject.parseObject(JsonString).get("groupId");
-        String fileMd5 = (String) JSONObject.parseObject(JsonString).get("md5");
-        String fileName = (String) JSONObject.parseObject(JsonString).get("fileName");
-        String uploadCloudPath = (String) JSONObject.parseObject(JsonString).get("uploadCloudPath");
-        ResponseResult result = new ResponseResult<>();
+     **/
+    public boolean checkFile(MultipartFileParamsVO fileParamsVO,UserDTO uploadUserDTO){
 
-        LambdaQueryWrapper<FileDatabase> lambdaQueryWrapper = new LambdaQueryWrapper<>();
-        lambdaQueryWrapper.eq(FileDatabase::getMd5,fileMd5);
-        FileDatabase isExist = fileMapper.selectOne(lambdaQueryWrapper);
+        String fileMd5 = fileParamsVO.getIdentifier();
 
-        String parentDir = uploadCloudPath.substring(uploadCloudPath.lastIndexOf("/"));
-        LambdaQueryWrapper<Directory> directoryWrapper = new LambdaQueryWrapper<>();
+
+        LambdaQueryWrapper<FileDTO> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+        lambdaQueryWrapper.eq(FileDTO::getMd5,fileMd5);
+        FileDTO isExist = fileMapper.selectOne(lambdaQueryWrapper);
+
 
         if(Objects.isNull(isExist)){
-            result.setCode(HttpStatus.NOT_FOUND.value());
-            result.setMsg("文件不存在");
-            return result;
+
+            return false;
         }
-        User uploadUser = ((LoginUser)securityContextService.getUserFromContext()).getUser();
-        if(groupId.equals("-1")){
 
-
-            UserPersonalFile toInsertUploadInfo = new UserPersonalFile();
-
-            directoryWrapper.eq(Directory::getName,parentDir)
-                    .eq(Directory::isGroupDirectory,false);
-            Directory parentDirObj = directoryMapper.selectOne(directoryWrapper);
-
-            toInsertUploadInfo.setFileName(fileName)
-                            .setFileId(isExist.getId())
-                            .setAbsolutePath(uploadCloudPath)
-                            .setParentDirectoryId(parentDirObj.getDirectoryId())
-                            .setUploadDate(new Timestamp(new Date().getTime()))
-                            .setUserId(uploadUser.getId());
-            userFileMapper.insert(toInsertUploadInfo);
-
-        }else{
-            GroupFile toInsertUploadInfo = new GroupFile();
-            LambdaQueryWrapper<Groups> groupWrapper = new LambdaQueryWrapper<>();
-
-            groupWrapper.eq(Groups::getGroupId,Long.valueOf(groupId)).eq(Groups::getUserId,uploadUser.getId());
-            Groups uploadGroup = groupMapper.selectOne(groupWrapper);
-            directoryWrapper.eq(Directory::getName,parentDir)
-                    .eq(Directory::isGroupDirectory,true);
-
-            Directory parentDirObj = directoryMapper.selectOne(directoryWrapper);
-            toInsertUploadInfo.setFileName(fileName)
-                    .setFileId(isExist.getId())
-                    .setAbsolutePath(uploadCloudPath)
-                    .setParentDirectoryId(parentDirObj.getDirectoryId())
-                    .setUploadDate(new Timestamp(new Date().getTime()))
-                    .setUserId(uploadUser.getId())
-                    .setGroupId(uploadGroup.getGroupId());
-            groupFileMapper.insert(toInsertUploadInfo);
-
-        }
-        result.setCode(HttpStatus.OK.value());
-        result.setMsg("文件已保存");
-        return result;
+//        if(groupId.equals("-1")){
+//
+//
+//            UserFileDTO toInsertUploadInfo = new UserFileDTO();
+//
+//            directoryWrapper.eq(DirectoryDTO::getName,parentDir)
+//                    .eq(DirectoryDTO::isGroupDirectory,false);
+//            DirectoryDTO parentDirObj = directoryMapper.selectOne(directoryWrapper);
+//
+//            toInsertUploadInfo.setFileName(fileName)
+//                            .setFileId(isExist.getId())
+//                            .setAbsolutePath(uploadCloudPath)
+//                            .setParentDirectoryId(parentDirObj.getDirectoryId())
+//                            .setUploadDate(new Timestamp(new Date().getTime()))
+//                            .setUserId(uploadUserDTO.getId());
+//            userFileMapper.insert(toInsertUploadInfo);
+//
+//        }else{
+//            GroupFileDTO toInsertUploadInfo = new GroupFileDTO();
+//            LambdaQueryWrapper<GroupsDTO> groupWrapper = new LambdaQueryWrapper<>();
+//
+//            groupWrapper.eq(GroupsDTO::getGroupId,Long.valueOf(groupId)).eq(GroupsDTO::getUserId, uploadUserDTO.getId());
+//            GroupsDTO uploadGroup = groupMapper.selectOne(groupWrapper);
+//            directoryWrapper.eq(DirectoryDTO::getName,parentDir)
+//                    .eq(DirectoryDTO::isGroupDirectory,true);
+//
+//            DirectoryDTO parentDirObj = directoryMapper.selectOne(directoryWrapper);
+//            toInsertUploadInfo.setFileName(fileName)
+//                    .setFileId(isExist.getId())
+//                    .setAbsolutePath(uploadCloudPath)
+//                    .setParentDirectoryId(parentDirObj.getDirectoryId())
+//                    .setUploadDate(new Timestamp(new Date().getTime()))
+//                    .setUserId(uploadUserDTO.getId())
+//                    .setGroupId(uploadGroup.getGroupId());
+//            groupFileMapper.insert(toInsertUploadInfo);
+//
+//        }
+//        isExist.setCount(isExist.getCount()+1);
+//        fileMapper.updateById(isExist);
+        return true;
 
 
 
 
 
     }
+
+    public void uploadExistUserFile(MultipartFileParamsVO fileParamsVO,UserDTO userDTO){
+
+        String fileMd5 = fileParamsVO.getIdentifier();
+        String fileName = fileParamsVO.getFilename();
+        String uploadCloudPath = fileParamsVO.getUploadCloudPath();
+
+
+        LambdaQueryWrapper<FileDTO> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+        lambdaQueryWrapper.eq(FileDTO::getMd5,fileMd5);
+
+        FileDTO isExist = fileMapper.selectOne(lambdaQueryWrapper);
+
+        String parentDir = uploadCloudPath.substring(uploadCloudPath.lastIndexOf("/"));
+        LambdaQueryWrapper<DirectoryDTO> directoryWrapper = new LambdaQueryWrapper<>();
+
+        UserFileDTO toInsertUploadInfo = new UserFileDTO();
+
+        directoryWrapper.eq(DirectoryDTO::getAbsolutePath,parentDir)
+                .eq(DirectoryDTO::isGroupDirectory,false)
+                .eq(DirectoryDTO::getOwnerId,userDTO.getId());
+        DirectoryDTO parentDirObj = directoryMapper.selectOne(directoryWrapper);
+
+        toInsertUploadInfo.setFileName(fileName)
+                .setFileId(isExist.getId())
+                .setAbsolutePath(uploadCloudPath)
+                .setParentDirectoryId(parentDirObj.getDirectoryId())
+                .setUploadDate(new Timestamp(new Date().getTime()))
+                .setUserId(userDTO.getId());
+        isExist.setCount(isExist.getCount()+1);
+        fileMapper.updateById(isExist);
+        userFileMapper.insert(toInsertUploadInfo);
+
+
+    }
+
+    public void uploadExistGroupFile(MultipartFileParamsVO fileParamsVO,UserDTO userDTO){
+        String groupId = fileParamsVO.getGroupId();
+        String fileMd5 = fileParamsVO.getIdentifier();
+        String fileName = fileParamsVO.getFilename();
+        String uploadCloudPath = fileParamsVO.getUploadCloudPath();
+
+
+        LambdaQueryWrapper<FileDTO> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+        lambdaQueryWrapper.eq(FileDTO::getMd5,fileMd5);
+
+        FileDTO isExist = fileMapper.selectOne(lambdaQueryWrapper);
+
+        String parentDir = uploadCloudPath.substring(uploadCloudPath.lastIndexOf("/"));
+        LambdaQueryWrapper<DirectoryDTO> directoryWrapper = new LambdaQueryWrapper<>();
+
+        GroupFileDTO toInsertUploadInfo = new GroupFileDTO();
+
+        directoryWrapper.eq(DirectoryDTO::getName,parentDir)
+                .eq(DirectoryDTO::isGroupDirectory,true);
+        DirectoryDTO parentDirObj = directoryMapper.selectOne(directoryWrapper);
+
+        toInsertUploadInfo.setFileName(fileName)
+                .setFileId(isExist.getId())
+                .setAbsolutePath(uploadCloudPath)
+                .setParentDirectoryId(parentDirObj.getDirectoryId())
+                .setUploadDate(new Timestamp(new Date().getTime()))
+                .setUserId(userDTO.getId())
+                .setGroupId(Long.valueOf(groupId));
+        isExist.setCount(isExist.getCount()+1);
+        fileMapper.updateById(isExist);
+        groupFileMapper.insert(toInsertUploadInfo);
+
+
+    }
+
+
+
+
 
 }
