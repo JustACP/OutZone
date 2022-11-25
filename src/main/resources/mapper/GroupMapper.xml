@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.outzone.mapper.GroupMapper">
+
+
+    
+    <select id="getGroupMaster" resultType="com.outzone.pojo.UserDTO">
+        select user.id,user.username,user.password,user.status,user.mailAddress,user.registerTime,user.role,user.icon
+        FROM user
+            inner join groups
+                on user.id = groups.userId
+            where (groups.groupId = #{groupId} AND groups.role = "master");
+    </select>
+    
+    <select id="getAdminList" resultMap="User">
+        SELECT
+            user.id,user.username
+        FROM user
+                 INNER JOIN groups
+                            ON user.id = groups.userId
+        where (groups.groupId = #{groupId} AND groups.role = "admin");
+    </select>
+    <resultMap id="User" type="com.outzone.pojo.UserDTO">
+        <result column="id" property="id"/>
+        <result column="username" property="username"/>
+    </resultMap>
+
+
+</mapper>

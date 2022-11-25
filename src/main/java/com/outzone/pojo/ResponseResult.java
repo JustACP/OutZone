@@ -1,13 +1,17 @@
 package com.outzone.pojo;
 
+import com.alibaba.fastjson.JSON;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.Serializable;
 
 @Data
 @Accessors(chain = true)
-public class ResponseResult<T>implements Serializable {
+public class ResponseResult<T> implements Serializable {
     private int code;
     private String msg;
     private T data;
@@ -51,4 +55,16 @@ public class ResponseResult<T>implements Serializable {
     public void setData(T data) {
         this.data = data;
     }
+    public static void writeByResponse(HttpServletResponse response,ResponseResult res) throws IOException {
+        response.setHeader("Access-Control-Allow-Origin", "*");
+        response.setHeader("Cache-Control", "no-cache");
+        response.setCharacterEncoding("UTF-8");
+        response.setContentType("application/json");
+
+        response.setStatus(res.code);
+        PrintWriter writer = response.getWriter();
+        writer.write(JSON.toJSONString(res));
+        writer.flush();
+    }
+
 }

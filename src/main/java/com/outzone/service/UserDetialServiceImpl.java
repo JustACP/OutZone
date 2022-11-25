@@ -27,7 +27,7 @@ public class UserDetialServiceImpl implements UserDetailsService{
     MenuMapper menuMapper;
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        System.out.println("start login");
+//        System.out.println("start login");
 
         LambdaQueryWrapper<UserDTO>   queryWrapper = new LambdaQueryWrapper<UserDTO>();
         queryWrapper.eq(UserDTO::getUsername,username);

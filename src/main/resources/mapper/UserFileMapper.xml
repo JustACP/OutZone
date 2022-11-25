@@ -7,7 +7,9 @@
     <select id="getUserFileList" resultMap="content">
         SELECT
             user_file.fileName,file.fileSize,
-            user_file.id,user_file.parentDirectoryId,file.fileType
+            user_file.id,user_file.parentDirectoryId,
+            file.fileType,file.icon,user_file.absolutePath,
+            user_file.uploadDate
         FROM user_file
                  INNER JOIN file
                             ON user_file.fileId = file.id
@@ -19,7 +21,42 @@
         <result column="id" property="id" />
         <result column="parentDirectoryId" property="parentId"/>
         <result column="fileType" property="type" />
+        <result column="icon" property="icon" />
+        <result column="absolutePath" property="path" />
+        <result column="uploadDate" property="uploadDate" />
     </resultMap>
 
+
+    <delete id="delAllSubUserFile">
+        <bind name="path" value="nowPath+'%'"/>
+        DELETE FROM user_file
+        WHERE user_file.id IN
+        (SELECT user_file.id FROM user_file WHERE (user_file.absolutePath  LIKE #{path}  AND user_file.userId = #{userId}));
+    </delete>
+
+
+    <select id="getAllSubUserFileList" resultType="com.outzone.pojo.UserFileDTO">
+        <bind name="path" value="nowPath+'%'"/>
+        SELECT
+            user_file.fileName,user_file.uploadDate,
+            user_file.id,user_file.parentDirectoryId,
+            user_file.fileId,user_file.userId,user_file.absolutePath
+        FROM user_file
+        where (user_file.absolutePath LIKE #{path} AND user_file.userId = #{userId});
+    </select>
+    <select id="getUserFileListById" resultMap="content">
+        SELECT
+            user_file.fileName,file.fileSize,
+            user_file.id,user_file.parentDirectoryId,
+            file.fileType,file.icon,user_file.absolutePath,
+            user_file.uploadDate
+        FROM user_file
+                 INNER JOIN file
+                            ON user_file.fileId = file.id
+        where user_file.id IN
+        <foreach collection="list" item="id" index="index" open="(" close=")" separator=", ">
+            #{id}
+        </foreach>
+    </select>
 
 </mapper>

@@ -20,7 +20,7 @@ import java.util.*;
 public class FileUploadService{
     @Value("${upload.file.path}")
     private String uploadFilePath;
-
+    private String uploadIconPath = uploadFilePath + "icon/";
     @Resource
     FileMapper fileMapper;
     @Resource
@@ -32,6 +32,8 @@ public class FileUploadService{
 
     @Resource
     GroupFileMapper groupFileMapper;
+
+
 
     @Resource
     GroupMapper groupMapper;
@@ -56,6 +58,26 @@ public class FileUploadService{
         return new ResponseResult(HttpStatus.OK.value(), "分片上传成功");
     }
 
+    public ResponseResult uploadIcon(MultipartFileParamsVO fileParams){
+
+        String filePath = uploadIconPath + fileParams.getIdentifier()+".png";
+        File fileTemp = new File(filePath);
+
+        File parentFile = fileTemp.getParentFile();
+
+        if(!parentFile.exists()){
+            parentFile.mkdirs();
+        }
+        try{
+            MultipartFile file = fileParams.getFile();
+            //transerTo 只能使用一次
+            file.transferTo(fileTemp);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return new ResponseResult(HttpStatus.OK.value(), "缩略图上传成功");
+    }
+
     public ResponseResult checkFileAndChunks(MultipartFileParamsVO fileParamsVO, HttpServletResponse response,UserDTO userDTO){
         ResponseResult responseResult = new ResponseResult<>();
         if(checkFile(fileParamsVO,userDTO)){
@@ -64,7 +86,13 @@ public class FileUploadService{
             Map<String,Boolean> isSkip = new HashMap<>();
             isSkip.put("isSkip",true);
             responseResult.setData(isSkip);
-            uploadExistUserFile(fileParamsVO, userDTO);
+
+            if(fileParamsVO.getGroupId()==-1){
+                uploadExistUserFile(fileParamsVO, userDTO);
+            }else{
+                uploadExistGroupFile(fileParamsVO,userDTO);
+            }
+
             return responseResult;
         }
 
@@ -133,52 +161,11 @@ public class FileUploadService{
         LambdaQueryWrapper<FileDTO> lambdaQueryWrapper = new LambdaQueryWrapper<>();
         lambdaQueryWrapper.eq(FileDTO::getMd5,fileMd5);
         FileDTO isExist = fileMapper.selectOne(lambdaQueryWrapper);
-
-
         if(Objects.isNull(isExist)){
-
             return false;
         }
 
-//        if(groupId.equals("-1")){
-//
-//
-//            UserFileDTO toInsertUploadInfo = new UserFileDTO();
-//
-//            directoryWrapper.eq(DirectoryDTO::getName,parentDir)
-//                    .eq(DirectoryDTO::isGroupDirectory,false);
-//            DirectoryDTO parentDirObj = directoryMapper.selectOne(directoryWrapper);
-//
-//            toInsertUploadInfo.setFileName(fileName)
-//                            .setFileId(isExist.getId())
-//                            .setAbsolutePath(uploadCloudPath)
-//                            .setParentDirectoryId(parentDirObj.getDirectoryId())
-//                            .setUploadDate(new Timestamp(new Date().getTime()))
-//                            .setUserId(uploadUserDTO.getId());
-//            userFileMapper.insert(toInsertUploadInfo);
-//
-//        }else{
-//            GroupFileDTO toInsertUploadInfo = new GroupFileDTO();
-//            LambdaQueryWrapper<GroupsDTO> groupWrapper = new LambdaQueryWrapper<>();
-//
-//            groupWrapper.eq(GroupsDTO::getGroupId,Long.valueOf(groupId)).eq(GroupsDTO::getUserId, uploadUserDTO.getId());
-//            GroupsDTO uploadGroup = groupMapper.selectOne(groupWrapper);
-//            directoryWrapper.eq(DirectoryDTO::getName,parentDir)
-//                    .eq(DirectoryDTO::isGroupDirectory,true);
-//
-//            DirectoryDTO parentDirObj = directoryMapper.selectOne(directoryWrapper);
-//            toInsertUploadInfo.setFileName(fileName)
-//                    .setFileId(isExist.getId())
-//                    .setAbsolutePath(uploadCloudPath)
-//                    .setParentDirectoryId(parentDirObj.getDirectoryId())
-//                    .setUploadDate(new Timestamp(new Date().getTime()))
-//                    .setUserId(uploadUserDTO.getId())
-//                    .setGroupId(uploadGroup.getGroupId());
-//            groupFileMapper.insert(toInsertUploadInfo);
-//
-//        }
-//        isExist.setCount(isExist.getCount()+1);
-//        fileMapper.updateById(isExist);
+
         return true;
 
 
@@ -223,7 +210,7 @@ public class FileUploadService{
     }
 
     public void uploadExistGroupFile(MultipartFileParamsVO fileParamsVO,UserDTO userDTO){
-        String groupId = fileParamsVO.getGroupId();
+        Long groupId = fileParamsVO.getGroupId();
         String fileMd5 = fileParamsVO.getIdentifier();
         String fileName = fileParamsVO.getFilename();
         String uploadCloudPath = fileParamsVO.getUploadCloudPath();
@@ -249,12 +236,37 @@ public class FileUploadService{
                 .setParentDirectoryId(parentDirObj.getDirectoryId())
                 .setUploadDate(new Timestamp(new Date().getTime()))
                 .setUserId(userDTO.getId())
-                .setGroupId(Long.valueOf(groupId));
+                .setGroupId(groupId);
         isExist.setCount(isExist.getCount()+1);
         fileMapper.updateById(isExist);
         groupFileMapper.insert(toInsertUploadInfo);
 
 
+    }
+
+    public FileDTO setFileIcon(FileDTO newFile){
+        newFile.setFileType(newFile.getFileType().toLowerCase());
+        String type = newFile.getFileType();
+        if(type.equals("apk")){
+            newFile.setIcon(StaticValue.url + "/icon/apk.png");
+        } else if(StaticValue.audioPrefix.contains(type)){
+            newFile.setIcon(StaticValue.url + "/icon/audio.png");
+
+        }else if(StaticValue.compressionPrefix.contains(type)) {
+            newFile.setIcon(StaticValue.url + "/icon/compression.png");
+        }else if(type.equals("docx")){
+            newFile.setIcon(StaticValue.url + "/icon/docx.png");
+        }else if(type.equals("pdf")){
+            newFile.setIcon(StaticValue.url + "/icon/pdf.png");
+        }else if(type.equals("txt")){
+            newFile.setIcon(StaticValue.url + "/icon/txt.png");
+        }else if(type.equals("xls")){
+            newFile.setIcon(StaticValue.url + "/icon/xls.png");
+        }else{
+            newFile.setIcon(StaticValue.url + "/icon/other.png");
+        }
+
+        return newFile;
     }
 
 

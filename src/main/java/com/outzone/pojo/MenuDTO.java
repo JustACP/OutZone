@@ -1,24 +1,27 @@
 package com.outzone.pojo;
 
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.util.Date;
 
 @TableName(value = "sys_menu")
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
+@Accessors(chain = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class MenuDTO implements Serializable {
     private  static final long serialVersionUID = 200;
 
-    @TableId
+    @TableId(value = "id" ,type = IdType.ASSIGN_ID)
     private Long id;
     private  String menuName;
 

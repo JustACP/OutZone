@@ -7,18 +7,42 @@
     <select id="getGroupFileList" resultMap="content">
         SELECT
             group_file.fileName,file.fileSize,
-            group_file.id,group_file.parentDirectoryId,file.fileType
+            group_file.id,group_file.parentDirectoryId,
+            file.fileType,file.icon,group_file.absolutePath,
+            group_file.uploadDate
         FROM group_file
                  INNER JOIN file
                             ON group_file.fileId = file.id
         where (group_file.absolutePath = #{absolutePath} AND group_file.groupId = #{groupId});
     </select>
+    <delete id="delAllSubGroupFile">
+        <bind name="path" value="nowPath+'%'"/>
+        DELETE FROM group_file
+        WHERE group_file.id IN
+        (SELECT group_file.id FROM group_file WHERE (group_file.absolutePath  LIKE #{path}  AND group_file.groupId = #{groupId}));
+    </delete>
+
+    <select id="getAllSubGroupFileList" resultType="com.outzone.pojo.GroupFileDTO">
+        <bind name="path" value="nowPath+'%'"/>
+        SELECT
+        group_file.fileName,group_file.uploadDate,
+        group_file.id,group_file.parentDirectoryId,
+        group_file.userId,group_file.groupId,
+        group_file.absolutePath,group_file.fileId
+        FROM group_file
+        where (group_file.absolutePath LIKE #{path} AND group_file.groupId = #{groupId});
+    </select>
+
+
     <resultMap id="content" type="com.outzone.pojo.ContentVO">
         <result column="fileName" property="name"/>
         <result column="fileSize" property="size"/>
         <result column="id" property="id" />
         <result column="parentDirectoryId" property="parentId"/>
         <result column="fileType" property="type" />
+        <result column="icon" property="icon" />
+        <result column="absolutePath" property="path" />
+        <result column="uploadDate" property="uploadDate" />
     </resultMap>
 
 

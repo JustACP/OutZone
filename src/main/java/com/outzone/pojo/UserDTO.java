@@ -19,7 +19,9 @@ import java.sql.Timestamp;
 @TableName(value = "user")
 public class UserDTO implements Serializable {
 
-    @TableId(type = IdType.ASSIGN_ID)
+
+
+    @TableId(value = "id" ,type = IdType.ASSIGN_ID)
     Long id;
     @TableField(value = "username")
     String username;

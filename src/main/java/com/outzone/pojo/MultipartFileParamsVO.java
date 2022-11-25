@@ -3,12 +3,13 @@ package com.outzone.pojo;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 import org.springframework.web.multipart.MultipartFile;
 
 @Data
 @AllArgsConstructor
-
 @NoArgsConstructor
+@Accessors(chain = true)
 public class MultipartFileParamsVO {
     private int chunkNumber;
     private long chunkSize;
@@ -20,7 +21,7 @@ public class MultipartFileParamsVO {
 
     private int totalChunks;
     private String uploadCloudPath;
-    private String groupId;
+    private long groupId;
     //接受文件
     private MultipartFile file;
 

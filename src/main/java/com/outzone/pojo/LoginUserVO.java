@@ -4,6 +4,7 @@ import com.alibaba.fastjson.annotation.JSONField;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -13,8 +14,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
+@Accessors(chain = true)
 public class LoginUserVO implements UserDetails{
     private UserDTO userDTO;
 
@@ -67,7 +69,7 @@ public class LoginUserVO implements UserDetails{
 
     @Override
     public boolean isAccountNonLocked() {
-        // TODO Auto-generated method stub
+
         return true;
     }
 
@@ -79,7 +81,7 @@ public class LoginUserVO implements UserDetails{
 
     @Override
     public boolean isEnabled() {
-        // TODO Auto-generated method stub
+
         return true;
     }
 

@@ -22,7 +22,7 @@ import java.io.IOException;
 import java.util.Objects;
 
 @Controller
-@RequestMapping("/user")
+@RequestMapping("/api/user")
 public class UserController {
     @Resource
     private LoginService loginService;
@@ -58,7 +58,7 @@ public class UserController {
         SecurityContext context = SecurityContextHolder.getContext();
         Authentication authentication = context.getAuthentication();
         LoginUserVO user  = (LoginUserVO) authentication.getPrincipal();
-        System.out.println(user.getUserDTO().toString());
+//        System.out.println(user.getUserDTO().toString());
         return "{msg:\"hello\"}";
     }
 
@@ -75,7 +75,7 @@ public class UserController {
     public ResponseResult verifiCode(@RequestBody UserDTO registerUserDTO) throws MessagingException, IOException {
         SecurityContext context = SecurityContextHolder.getContext();
         UserDTO loginUserDTO = (UserDTO) context.getAuthentication().getPrincipal();
-        System.out.println(loginUserDTO.getUsername());
+//        System.out.println(loginUserDTO.getUsername());
 
         return loginService.sendRegisterCode(registerUserDTO);
     }

@@ -2,13 +2,8 @@ package com.outzone.service;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.outzone.mapper.MenuMapper;
-import com.outzone.mapper.UserMapper;
-import com.outzone.mapper.UserRoleMapper;
-import com.outzone.pojo.LoginUserVO;
-import com.outzone.pojo.ResponseResult;
-import com.outzone.pojo.TimeLongValue;
-import com.outzone.pojo.UserDTO;
+import com.outzone.mapper.*;
+import com.outzone.pojo.*;
 import com.outzone.util.JwtUtil;
 import com.outzone.util.RedisUtil;
 import com.outzone.util.VerifiCodeUtil;
@@ -50,6 +45,10 @@ public class LoginService{
     UserRoleMapper userRoleMapper;
     @Resource
     MailService mailService;
+    @Resource
+    UserFileMapper userFileMapper;
+    @Resource
+    DirectoryMapper directoryMapper;
     public ResponseResult register(UserDTO registerUserDTO) {
         ResponseResult reigisterResponse = new ResponseResult(HttpStatus.OK.value(),"注册成功");
         if(redisUtil.getCacheObject("registerCode:"+ registerUserDTO.getMailAddress())
@@ -69,7 +68,14 @@ public class LoginService{
         registerUserDTO.setStatus(1);
         userMapper.insert(registerUserDTO);
         userRoleMapper.setUserRole(registerUserDTO.getId(),2L);
-
+        registerUserDTO = userMapper.selectOne(new LambdaQueryWrapper<UserDTO>().eq(UserDTO::getUsername,registerUserDTO.getUsername()));
+        DirectoryDTO userBasicDir = new DirectoryDTO();
+        userBasicDir.setParentDirectoryId(0)
+                .setAbsolutePath("/")
+                .setOwnerId(registerUserDTO.getId())
+                .setGroupDirectory(false)
+                .setName("/");
+        directoryMapper.insert(userBasicDir);
 
         //先登陆一手
         UsernamePasswordAuthenticationToken  authenticationToken =
@@ -123,7 +129,7 @@ public class LoginService{
         //把完整的用户信息存入redis
 
 
-        System.out.println(loginUserVO);
+//        System.out.println(loginUserVO);
         redisUtil.setCacheObject("login:"+loginUUID, JSONObject.toJSONString(loginUserVO),30, TimeUnit.DAYS);
 
         return new ResponseResult<>(HttpStatus.OK.value(), "登陆成功",map);

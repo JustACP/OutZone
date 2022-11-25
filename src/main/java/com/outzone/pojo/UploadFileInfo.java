@@ -12,5 +12,5 @@ public class UploadFileInfo {
 
     private int totalChunks;
     private String uploadCloudPath;
-    private String groupId;
+    private Long groupId;
 }

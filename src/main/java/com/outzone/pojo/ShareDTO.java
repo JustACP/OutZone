@@ -9,26 +9,27 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
-import java.sql.Timestamp;
-
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
-@TableName("file")
+@AllArgsConstructor
 @Accessors(chain = true)
-public class FileDTO {
+@TableName(value = "share")
+public class ShareDTO {
     @TableId(value = "id",type = IdType.ASSIGN_ID)
-    long id;
-    String filename;
-    long count;
-    String md5;
-    @TableField("physicalPath")
-    String physicalPath;
-    @TableField("fileType")
-    String fileType;
-    Timestamp uploadtime;
-    @TableField("fileSize")
-    long fileSize;
-    String icon;
+    Long id;
+    @TableField(value = "shareId")
+    String shareId;
+    @TableField(value = "userId")
+    Long UserId;
+    @TableField(value = "isDirectory")
+    boolean isDirectory;
+    @TableField(value = "password")
+    String passwords;
+    String url;
+    boolean enable = true;
+    @TableField(value = "fileOrDirectoryId")
+    Long fileOrDirectoryId;
+
+
 
 }
