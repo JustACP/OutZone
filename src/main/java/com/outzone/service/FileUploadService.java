@@ -80,53 +80,68 @@ public class FileUploadService{
 
     public ResponseResult checkFileAndChunks(MultipartFileParamsVO fileParamsVO, HttpServletResponse response,UserDTO userDTO){
         ResponseResult responseResult = new ResponseResult<>();
-        if(checkFile(fileParamsVO,userDTO)){
-            responseResult.setCode(HttpStatus.OK.value());
-            responseResult.setMsg("文件已存在");
-            Map<String,Boolean> isSkip = new HashMap<>();
-            isSkip.put("isSkip",true);
-            responseResult.setData(isSkip);
-
-            if(fileParamsVO.getGroupId()==-1){
-                uploadExistUserFile(fileParamsVO, userDTO);
-            }else{
-                uploadExistGroupFile(fileParamsVO,userDTO);
-            }
-
-            return responseResult;
-        }
+//        if(checkFile(fileParamsVO,userDTO)){
+//            responseResult.setCode(HttpStatus.OK.value());
+//            responseResult.setMsg("文件已存在");
+//            Map<String,Boolean> isSkip = new HashMap<>();
+//            isSkip.put("isSkip",true);
+//            isSkip.put("needMerge", false);
+//            responseResult.setData(isSkip);
+//
+//            if(fileParamsVO.getGroupId()==-1){
+//                uploadExistUserFile(fileParamsVO, userDTO);
+//            }else{
+//                uploadExistGroupFile(fileParamsVO,userDTO);
+//            }
+//
+//            return responseResult;
+//        }
 
         String fileDir = fileParamsVO.getIdentifier();
         String fileName = fileParamsVO.getFilename();
 
         // 分片目录
-        String chunkPath = uploadFilePath  + fileDir+ "/chunk/";
+        String chunkPath = uploadFilePath  + fileDir+ "/chunk/"+fileParamsVO.getChunkNumber();
 
         //分片目录  对象
         File file = new File(chunkPath);
-        List<File> chunkFileList = MergeUtil.chunkFileList(file);
+        Map<String,Boolean> hashMap = new HashMap<>();
+        if(file.exists()){
 
+            hashMap.put("isSkipChunk",true);
+            hashMap.put("needMerge",true);
+            responseResult.setCode(200);
+            responseResult.setMsg("已存在分块");
 
-        String[] temp;
-
-        if(chunkFileList ==null){
-            temp = new String[0];
         }else{
-            temp = new String[chunkFileList.size()];
+            hashMap.put("isSkipChunk",false);
+            hashMap.put("needMerge",true);
 
+            responseResult.setCode(210);
+            responseResult.setMsg("需要上传分片");
 
-
-            if(chunkFileList.size() >0){
-                for(int i = 0;i<chunkFileList.size();i++){
-                    temp[i] = chunkFileList.get(i).getName();//保存已存在文件列表
-                }
-            }
         }
+//        List<File> chunkFileList = MergeUtil.chunkFileList(file);
 
-        HashMap<String,Object> hashMap = new HashMap<>();
-        hashMap.put("uploadedList",temp);
 
-        return new ResponseResult<HashMap>(HttpStatus.OK.value(), "已存在分片数",hashMap);
+//        String[] temp;
+//
+//        if(chunkFileList ==null){
+//            temp = new String[0];
+//        }else{
+//            temp = new String[chunkFileList.size()];
+//
+//
+//
+//            if(chunkFileList.size() >0){
+//                for(int i = 0;i<chunkFileList.size();i++){
+//                    temp[i] = chunkFileList.get(i).getName();//保存已存在文件列表
+//                }
+//            }
+//        }
+
+        responseResult.setData(hashMap);
+        return responseResult;
     }
 
 

@@ -61,9 +61,10 @@ public class ResponseResult<T> implements Serializable {
         response.setCharacterEncoding("UTF-8");
         response.setContentType("application/json");
 
-        response.setStatus(res.code);
+
         PrintWriter writer = response.getWriter();
         writer.write(JSON.toJSONString(res));
+        response.setStatus(res.code);
         writer.flush();
     }
 

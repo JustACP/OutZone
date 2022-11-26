@@ -83,6 +83,38 @@ public class FileController {
 
 
     }
+
+    @GetMapping("/preCheckFileExist")
+    public void preCheckFileExist(MultipartFileParamsVO fileParamsVO , HttpServletResponse response) throws IOException {
+        UserDTO requestUser = securityContextService.getUserFromContext().getUserDTO();
+        ResponseResult responseResult = new ResponseResult<>();
+        if(fileUploadService.checkFile(fileParamsVO,requestUser)){
+            responseResult.setCode(HttpStatus.OK.value());
+            responseResult.setMsg("文件已存在");
+            Map<String,Boolean> isSkip = new HashMap<>();
+            isSkip.put("isSkip",true);
+            isSkip.put("needMerge", false);
+            responseResult.setData(isSkip);
+
+            if(fileParamsVO.getGroupId()==-1){
+                fileUploadService.uploadExistUserFile(fileParamsVO, requestUser);
+            }else{
+                fileUploadService.uploadExistGroupFile(fileParamsVO,requestUser);
+            }
+
+
+        }else{
+            responseResult.setCode(210);
+            responseResult.setMsg("文件已存在");
+            Map<String,Boolean> isSkip = new HashMap<>();
+            isSkip.put("isSkip",false);
+            isSkip.put("needMerge", true);
+            responseResult.setData(isSkip);
+        }
+        ResponseResult.writeByResponse(response,responseResult);
+
+    }
+
     @GetMapping("/test")
 
     public void test(HttpServletResponse response) throws IOException {
@@ -600,17 +632,27 @@ public class FileController {
 
     }
 
-    @PostMapping("/storageToSpace")
+    @PostMapping("/restorage")
+    @ResponseBody
     public ResponseResult storageToSpace(@RequestBody String JSONString){
-        ResponseResult ok = new ResponseResult(HttpStatus.OK.value(), "创建成功");
-        ResponseResult failed = new ResponseResult(HttpStatus.FORBIDDEN.value(),  "创建失败");
+
         UserDTO requestUser = securityContextService.getUserFromContext().getUserDTO();
         String destPath = JSONObject.parseObject(JSONString).getString("destination");
-        Long groupId = JSONObject.parseObject(JSONString).getLong("groupId");
+        Long destGroupId = JSONObject.parseObject(JSONString).getLong("destGroupId");
+        Long sourceGroupId = JSONObject.parseObject(JSONString).getLong("sourceGroupId");
         List<ContentVO> toCopyFiles = JSONArray.parseArray(JSON.toJSONString(JSONObject.parseObject(JSONString)
-                .get("files")),ContentVO.class);
+               .get("files")),ContentVO.class);
 
-        return ok;
+        DirectoryDTO destination = directoryMapper.selectOne(new LambdaQueryWrapper<DirectoryDTO>()
+                .eq(DirectoryDTO::getAbsolutePath,destPath)
+                .eq(DirectoryDTO::isGroupDirectory,destGroupId != -1)
+                .eq(DirectoryDTO::getOwnerId,(destGroupId!=-1)?destGroupId:requestUser.getId()));
+        ResponseResult res = null;
+        for(ContentVO tmp : toCopyFiles){
+            res = cloudFilesServices.restorage(requestUser,tmp,destination,sourceGroupId,destGroupId);
+            if(res.getCode()!=HttpStatus.OK.value()) return res;
+        }
+        return res;
 
     }
 

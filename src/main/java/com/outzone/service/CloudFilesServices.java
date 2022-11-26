@@ -2,6 +2,7 @@ package com.outzone.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.outzone.mapper.*;
 import com.outzone.pojo.*;
 import lombok.extern.slf4j.Slf4j;
@@ -236,9 +237,9 @@ public class CloudFilesServices {
                     .eq(UserFileDTO::getUserId,requestUser.getId()));
 
             copiedFiles.setUploadDate(new Timestamp(new Date().getTime()));
-            if(allParentDir.getAbsolutePath().equals("/")){
-                copiedFiles.setAbsolutePath(destination.getAbsolutePath());
-            }
+
+            copiedFiles.setAbsolutePath(destination.getAbsolutePath());
+
             copiedFiles.setId(Long.valueOf(null));
 
             userFileMapper.insert(copiedFiles);
@@ -246,6 +247,9 @@ public class CloudFilesServices {
             GroupFileDTO copiedFiles = groupFileMapper.selectOne(new LambdaQueryWrapper<GroupFileDTO>()
                     .eq(GroupFileDTO::getGroupId,groupId)
                     .eq(GroupFileDTO::getId,toCopyFile.getId()));
+            copiedFiles.setAbsolutePath(destination.getAbsolutePath());
+            copiedFiles.setFileName(toCopyFile.getName());
+            copiedFiles.setUserId(requestUser.getId());
             copiedFiles.setUploadDate(new Timestamp(new Date().getTime()));
             copiedFiles.setId(Long.valueOf(null));
             groupFileMapper.insert(copiedFiles);
@@ -414,149 +418,216 @@ public class CloudFilesServices {
             if(Objects.isNull(destGroup)) return forbiddenResult;
         }
 
-        okResult.setMsg("复制成功");
+        okResult.setMsg("转存成功");
 
-        List<ContentVO> destDirs =
-                directoryMapper.getDirList(destination.getAbsolutePath(),
-                        (destGroupId != -1)?destGroupId:requestUser.getId() , destGroupId !=-1);
+        if(toStorageFile.isDirectoryType()){
 
-        for(ContentVO destDirsTmp : destDirs)
-            if(destDirsTmp.isDirectoryType() && destDirsTmp.getName().equals(toStorageFile.getName()))
-                return existResult;
+            List<ContentVO> destDirs =
+                    directoryMapper.getDirList(destination.getAbsolutePath(),
+                            (destGroupId != -1)?destGroupId:requestUser.getId() , destGroupId !=-1);
 
-        DirectoryDTO sourceFile = directoryMapper.selectById(toStorageFile.getId());
-        if(sourceGroupId != -1) sourceUserId = sourceFile.getOwnerId();
+            for(ContentVO destDirsTmp : destDirs)
+                if(destDirsTmp.isDirectoryType() && destDirsTmp.getName().equals(toStorageFile.getName()))
+                    return existResult;
 
-        List<DirectoryDTO> toCopyDirList = directoryMapper.getAllSubDir(toStorageFile.getPath(),sourceUserId != -1
-                ,(sourceGroupId != -1)?sourceUserId:sourceUserId);
+            DirectoryDTO sourceFile = directoryMapper.selectById(toStorageFile.getId());
+            if(sourceGroupId == -1) sourceUserId = sourceFile.getOwnerId();
 
-        if(Objects.isNull(toCopyDirList)) return notFountResult;
-        HashMap<String,DirectoryDTO> copiedDirList = new HashMap<>();
-        DirectoryDTO allParentDir = directoryMapper.selectById(toStorageFile.getParentId());
-        //插入新的目录
-        for(DirectoryDTO copyTmp : toCopyDirList){
+            List<DirectoryDTO> toCopyDirList = directoryMapper.getAllSubDir(toStorageFile.getPath(),sourceGroupId != -1
+                    ,(sourceGroupId != -1)?sourceGroupId:sourceUserId);
+            toCopyDirList.sort((t0, t1) -> t0.getAbsolutePath().length() - t1.getAbsolutePath().length());
+            if(Objects.isNull(toCopyDirList)) return notFountResult;
+            HashMap<String,DirectoryDTO> copiedDirList = new HashMap<>();
+            DirectoryDTO allParentDir = directoryMapper.selectById(toStorageFile.getParentId());
+            //插入新的目录
+            for(DirectoryDTO copyTmp : toCopyDirList){
 
-            if(copyTmp.getAbsolutePath().equals(toStorageFile.getPath())){
-                copyTmp.setAbsolutePath(destination.getAbsolutePath()+copyTmp.getName().substring(1));
+                if(copyTmp.getAbsolutePath().equals(toStorageFile.getPath())){
+                    copyTmp.setAbsolutePath(destination.getAbsolutePath()+copyTmp.getName().substring(1));
 
-            }else if(copyTmp.getAbsolutePath().equals("/")){
-                return notFountResult;
-            } else {
-                if(allParentDir.getAbsolutePath().equals("/")){
-                    copyTmp.setAbsolutePath(destination.getAbsolutePath()+copyTmp.getAbsolutePath().substring(1));
+                }else if(copyTmp.getAbsolutePath().equals("/")){
+                    return notFountResult;
                 } else {
-                    copyTmp.setAbsolutePath(copyTmp.getAbsolutePath().replaceAll(allParentDir.getAbsolutePath(), destination.getAbsolutePath()));
+                    if(allParentDir.getAbsolutePath().equals("/")){
+                        copyTmp.setAbsolutePath(destination.getAbsolutePath()+copyTmp.getAbsolutePath().substring(1));
+                    } else {
+                        copyTmp.setAbsolutePath(copyTmp.getAbsolutePath().replaceAll(allParentDir.getAbsolutePath(), destination.getAbsolutePath()));
+                    }
                 }
+                DirectoryDTO parent = copiedDirList.get(copyTmp.getAbsolutePath().replaceAll(copyTmp.getName(), "/"));
+                if(Objects.isNull(parent)) copyTmp.setParentDirectoryId(destination.getDirectoryId());
+                else copyTmp.setParentDirectoryId(parent.getDirectoryId());
+                copyTmp.setDirectoryId(IdWorker.getId(copyTmp));
+
+                copyTmp.setOwnerId((destGroupId !=-1)?destGroupId: requestUser.getId());
+                copyTmp.setGroupDirectory((destGroupId != -1));
+
+                copiedDirList.put(copyTmp.getAbsolutePath(),copyTmp);
+
+                directoryMapper.insert(copyTmp);
             }
-            copyTmp.setIdAsNull();
-            copyTmp.setParentDirectoryId((destination.getDirectoryId()));
-            copyTmp.setOwnerId((destGroupId !=-1)?destGroupId: requestUser.getId());
-            copyTmp.setGroupDirectory((destGroupId != -1));
-            copiedDirList.put(copyTmp.getAbsolutePath(),copyTmp);
-
-            directoryMapper.insert(copyTmp);
-        }
 
 
-        if(sourceGroupId == -1L){
+            if(sourceGroupId == -1L){
 
-            List<UserFileDTO> toCopyUserFileList = userFileMapper.getAllSubUserFileList(toStorageFile.getPath(), sourceUserId);
-            if(Objects.isNull(toCopyUserFileList)) return okResult;
-            if(destGroupId == -1){
-
-            }
-            for(UserFileDTO userFileTmp:toCopyUserFileList) {
+                List<UserFileDTO> toCopyUserFileList = userFileMapper.getAllSubUserFileList(toStorageFile.getPath(), sourceUserId);
+                if(Objects.isNull(toCopyUserFileList)) return okResult;
                 if(destGroupId == -1){
-                    userFileTmp.setId(null);
-                    if (allParentDir.getAbsolutePath().equals("/") && !userFileTmp.getAbsolutePath().equals("/")) {
-                        userFileTmp.setAbsolutePath(destination.getAbsolutePath() + userFileTmp.getAbsolutePath().substring(1));
-                    } else if (allParentDir.getAbsolutePath().equals("/") && !userFileTmp.getAbsolutePath().equals("/")){
-                        userFileTmp.setAbsolutePath(destination.getAbsolutePath());
-                    } else {
-                        userFileTmp.setAbsolutePath(userFileTmp.getAbsolutePath().replaceAll(allParentDir.getAbsolutePath(), destination.getAbsolutePath()));
-                    }
 
-                    DirectoryDTO tmpParentDir = copiedDirList.get(userFileTmp.getAbsolutePath());
-                    userFileTmp.setParentDirectoryId(tmpParentDir.getDirectoryId());
-                    userFileTmp.setUserId(requestUser.getId());
-                    userFileTmp.setUploadDate(new Timestamp(new Date().getTime()));
-                    userFileMapper.insert(userFileTmp);
-                }else{
-                    GroupFileDTO groupFileTmp = new GroupFileDTO();
-                    groupFileTmp.setId(null);
-                    if (allParentDir.getAbsolutePath().equals("/") && !userFileTmp.getAbsolutePath().equals("/")) {
-                        groupFileTmp.setAbsolutePath(destination.getAbsolutePath() + userFileTmp.getAbsolutePath().substring(1));
-                    } else if (allParentDir.getAbsolutePath().equals("/") && !userFileTmp.getAbsolutePath().equals("/")){
-                        groupFileTmp.setAbsolutePath(destination.getAbsolutePath());
-                    } else {
-                        groupFileTmp.setAbsolutePath(userFileTmp.getAbsolutePath().replaceAll(allParentDir.getAbsolutePath(), destination.getAbsolutePath()));
-                    }
-                    DirectoryDTO tmpParentDir = copiedDirList.get(groupFileTmp.getAbsolutePath());
-                    groupFileTmp.setFileId(userFileTmp.getFileId());
-                    groupFileTmp.setParentDirectoryId(tmpParentDir.getDirectoryId());
-                    groupFileTmp.setUploadDate(new Timestamp(new Date().getTime()));
-                    groupFileTmp.setUserId(requestUser.getId());
-                    groupFileTmp.setFileName(userFileTmp.getFileName());
-                    groupFileTmp.setGroupId(destGroupId);
-
-                    groupFileMapper.insert(groupFileTmp);
                 }
+                for(UserFileDTO userFileTmp:toCopyUserFileList) {
+                    if(destGroupId == -1){
+                        userFileTmp.setId(null);
+                        if (allParentDir.getAbsolutePath().equals("/") && !userFileTmp.getAbsolutePath().equals("/")) {
+                            userFileTmp.setAbsolutePath(destination.getAbsolutePath() + userFileTmp.getAbsolutePath().substring(1));
+                        } else if (allParentDir.getAbsolutePath().equals("/") && !userFileTmp.getAbsolutePath().equals("/")){
+                            userFileTmp.setAbsolutePath(destination.getAbsolutePath());
+                        } else {
+                            userFileTmp.setAbsolutePath(userFileTmp.getAbsolutePath().replaceAll(allParentDir.getAbsolutePath(), destination.getAbsolutePath()));
+                        }
+
+                        DirectoryDTO tmpParentDir = copiedDirList.get(userFileTmp.getAbsolutePath());
+                        if(Objects.isNull(tmpParentDir)) userFileTmp.setParentDirectoryId(destination.getDirectoryId());
+                        else userFileTmp.setParentDirectoryId(tmpParentDir.getDirectoryId());
+                        userFileTmp.setUserId(requestUser.getId());
+                        userFileTmp.setUploadDate(new Timestamp(new Date().getTime()));
+                        userFileMapper.insert(userFileTmp);
+                    }else{
+                        GroupFileDTO groupFileTmp = new GroupFileDTO();
+                        groupFileTmp.setId(null);
+                        if (allParentDir.getAbsolutePath().equals("/") && !userFileTmp.getAbsolutePath().equals("/")) {
+                            groupFileTmp.setAbsolutePath(destination.getAbsolutePath() + userFileTmp.getAbsolutePath().substring(1));
+                        } else if (allParentDir.getAbsolutePath().equals("/") && !userFileTmp.getAbsolutePath().equals("/")){
+                            groupFileTmp.setAbsolutePath(destination.getAbsolutePath());
+                        } else {
+                            groupFileTmp.setAbsolutePath(userFileTmp.getAbsolutePath().replaceAll(allParentDir.getAbsolutePath(), destination.getAbsolutePath()));
+                        }
+                        DirectoryDTO tmpParentDir = copiedDirList.get(groupFileTmp.getAbsolutePath());
+                        if(Objects.isNull(tmpParentDir)) groupFileTmp.setParentDirectoryId(destination.getDirectoryId());
+                        else groupFileTmp.setParentDirectoryId(tmpParentDir.getDirectoryId());
+                        groupFileTmp.setFileId(userFileTmp.getFileId());
+
+                        groupFileTmp.setUploadDate(new Timestamp(new Date().getTime()));
+                        groupFileTmp.setUserId(requestUser.getId());
+                        groupFileTmp.setFileName(userFileTmp.getFileName());
+                        groupFileTmp.setGroupId(destGroupId);
+
+                        groupFileMapper.insert(groupFileTmp);
+                    }
+                }
+
+
+
+            }else{
+                List<GroupFileDTO> toCopyGroupFileList = groupFileMapper.getAllSubGroupFileList(toStorageFile.getPath(), sourceGroupId);
+
+
+                GroupsDTO userGroupRole = groupMapper.selectOne(new LambdaQueryWrapper<GroupsDTO>()
+                        .eq(GroupsDTO::getGroupId,sourceGroupId)
+                        .eq(GroupsDTO::getUserId,requestUser.getId()));
+                if(Objects.isNull(userGroupRole)) return forbiddenResult;
+                for(GroupFileDTO groupFileTmp : toCopyGroupFileList){
+                    if(destGroupId != -1){
+                        groupFileTmp.setId(null);
+                        if (allParentDir.getAbsolutePath().equals("/") && !groupFileTmp.getAbsolutePath().equals("/")) {
+                            groupFileTmp.setAbsolutePath(destination.getAbsolutePath() + groupFileTmp.getAbsolutePath().substring(1));
+                        } else if (allParentDir.getAbsolutePath().equals("/") && !groupFileTmp.getAbsolutePath().equals("/")){
+                            groupFileTmp.setAbsolutePath(destination.getAbsolutePath());
+                        } else {
+                            groupFileTmp.setAbsolutePath(groupFileTmp.getAbsolutePath().replaceAll(allParentDir.getAbsolutePath(), destination.getAbsolutePath()));
+                        }
+                        DirectoryDTO tmpParentDir = copiedDirList.get(groupFileTmp.getAbsolutePath());
+                        if(Objects.isNull(tmpParentDir)) groupFileTmp.setParentDirectoryId(destination.getDirectoryId());
+                        else groupFileTmp.setParentDirectoryId(tmpParentDir.getDirectoryId());
+                        groupFileTmp.setUploadDate(new Timestamp(new Date().getTime()));
+                        groupFileTmp.setGroupId(destGroupId);
+
+                        groupFileTmp.setUserId(requestUser.getId());
+                        groupFileMapper.insert(groupFileTmp);
+                    }else{
+                        UserFileDTO userFileTmp = new UserFileDTO();
+                        userFileTmp.setId(null);
+                        if (allParentDir.getAbsolutePath().equals("/") && !groupFileTmp.getAbsolutePath().equals("/")) {
+                            userFileTmp.setAbsolutePath(destination.getAbsolutePath() + groupFileTmp.getAbsolutePath().substring(1));
+                        } else if (allParentDir.getAbsolutePath().equals("/") && !groupFileTmp.getAbsolutePath().equals("/")){
+                            userFileTmp.setAbsolutePath(destination.getAbsolutePath());
+                        } else {
+                            userFileTmp.setAbsolutePath(groupFileTmp.getAbsolutePath().replaceAll(allParentDir.getAbsolutePath(), destination.getAbsolutePath()));
+                        }
+
+                        DirectoryDTO tmpParentDir = copiedDirList.get(groupFileTmp.getAbsolutePath());
+                        userFileTmp.setFileName(groupFileTmp.getFileName());
+                        if(Objects.isNull(tmpParentDir)) userFileTmp.setParentDirectoryId(destination.getDirectoryId());
+                        else userFileTmp.setParentDirectoryId(tmpParentDir.getDirectoryId());
+                        userFileTmp.setUserId(requestUser.getId());
+                        userFileTmp.setUploadDate(new Timestamp(new Date().getTime()));
+                        userFileMapper.insert(userFileTmp);
+                    }
+
+                }
+
+
             }
+
 
 
 
         }else{
-            List<GroupFileDTO> toCopyGroupFileList = groupFileMapper.getAllSubGroupFileList(toStorageFile.getPath(), sourceGroupId);
+            DirectoryDTO allParentDir = directoryMapper.selectById(toStorageFile.getParentId());
 
+            if(sourceGroupId == -1) {
+                sourceUserId = userFileMapper.selectById(toStorageFile.getId()).getUserId();
+                UserFileDTO copiedFiles = userFileMapper.selectOne(new LambdaQueryWrapper<UserFileDTO>()
+                        .eq(UserFileDTO::getId,toStorageFile.getId())
+                        .eq(UserFileDTO::getUserId,sourceUserId));
+                if(destGroupId == -1){
 
-            GroupsDTO userGroupRole = groupMapper.selectOne(new LambdaQueryWrapper<GroupsDTO>()
-                    .eq(GroupsDTO::getGroupId,sourceGroupId)
-                    .eq(GroupsDTO::getUserId,requestUser.getId()));
-            if(Objects.isNull(userGroupRole)) return forbiddenResult;
-            for(GroupFileDTO groupFileTmp : toCopyGroupFileList){
-                if(destGroupId != -1){
-                    groupFileTmp.setId(null);
-                    if (allParentDir.getAbsolutePath().equals("/") && !groupFileTmp.getAbsolutePath().equals("/")) {
-                        groupFileTmp.setAbsolutePath(destination.getAbsolutePath() + groupFileTmp.getAbsolutePath().substring(1));
-                    } else if (allParentDir.getAbsolutePath().equals("/") && !groupFileTmp.getAbsolutePath().equals("/")){
-                        groupFileTmp.setAbsolutePath(destination.getAbsolutePath());
-                    } else {
-                        groupFileTmp.setAbsolutePath(groupFileTmp.getAbsolutePath().replaceAll(allParentDir.getAbsolutePath(), destination.getAbsolutePath()));
-                    }
-                    DirectoryDTO tmpParentDir = copiedDirList.get(groupFileTmp.getAbsolutePath());
-                    groupFileTmp.setParentDirectoryId(tmpParentDir.getDirectoryId());
-                    groupFileTmp.setUploadDate(new Timestamp(new Date().getTime()));
-                    groupFileTmp.setGroupId(destGroupId);
+                    copiedFiles.setUploadDate(new Timestamp(new Date().getTime()));
 
-                    groupFileTmp.setUserId(requestUser.getId());
-                    groupFileMapper.insert(groupFileTmp);
+                    copiedFiles.setAbsolutePath(destination.getAbsolutePath());
+
+                    copiedFiles.setId(null);
+                    copiedFiles.setParentDirectoryId(destination.getParentDirectoryId());
+                    copiedFiles.setUserId(requestUser.getId());
+                    copiedFiles.setUploadDate(new Timestamp(new Date().getTime()));
+
+                    userFileMapper.insert(copiedFiles);
                 }else{
-                    UserFileDTO userFileTmp = new UserFileDTO();
-                    userFileTmp.setId(null);
-                    if (allParentDir.getAbsolutePath().equals("/") && !groupFileTmp.getAbsolutePath().equals("/")) {
-                        userFileTmp.setAbsolutePath(destination.getAbsolutePath() + groupFileTmp.getAbsolutePath().substring(1));
-                    } else if (allParentDir.getAbsolutePath().equals("/") && !groupFileTmp.getAbsolutePath().equals("/")){
-                        userFileTmp.setAbsolutePath(destination.getAbsolutePath());
-                    } else {
-                        userFileTmp.setAbsolutePath(groupFileTmp.getAbsolutePath().replaceAll(allParentDir.getAbsolutePath(), destination.getAbsolutePath()));
-                    }
+                    GroupFileDTO toStorageIntoGroup = new GroupFileDTO();
+                    toStorageIntoGroup.setAbsolutePath(destination.getAbsolutePath())
+                                    .setFileId(toStorageFile.getId())
+                                    .setFileName(toStorageFile.getName())
+                                    .setUploadDate(new Timestamp(new Date().getTime()))
+                                    .setId(null)
+                                    .setParentDirectoryId(destination.getDirectoryId())
+                                    .setGroupId(destGroupId)
+                                    .setUserId(requestUser.getId());
 
-                    DirectoryDTO tmpParentDir = copiedDirList.get(groupFileTmp.getAbsolutePath());
-                    userFileTmp.setFileName(groupFileTmp.getFileName());
-                    userFileTmp.setParentDirectoryId(tmpParentDir.getDirectoryId());
-                    userFileTmp.setUserId(requestUser.getId());
-                    userFileTmp.setUploadDate(new Timestamp(new Date().getTime()));
-                    userFileMapper.insert(userFileTmp);
+                    groupFileMapper.insert(toStorageIntoGroup);
                 }
+            }else{
+                GroupFileDTO copiedFile = groupFileMapper.selectById(toStorageFile.getId());
+                if(destGroupId == -1){
+                    UserFileDTO toStorageIntoUser = new UserFileDTO(null, requestUser.getId(), copiedFile.getFileId(),
+                            destination.getDirectoryId(),destination.getAbsolutePath(),new Timestamp(new Date().getTime()),
+                            toStorageFile.getName());
+                    userFileMapper.insert(toStorageIntoUser);
 
+                }else{
+                    copiedFile.setUserId(requestUser.getId())
+                            .setUploadDate(new Timestamp(new Date().getTime()))
+                            .setAbsolutePath(destination.getAbsolutePath())
+                            .setParentDirectoryId(destination.getParentDirectoryId());
+                    groupFileMapper.insert(copiedFile);
+                }
             }
 
 
+
+
+
         }
-
-
         return okResult;
-
 
     }
 }
