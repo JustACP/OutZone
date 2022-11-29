@@ -3,7 +3,7 @@ package com.outzone.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.outzone.mapper.MenuMapper;
 import com.outzone.mapper.UserMapper;
-import com.outzone.pojo.LoginUserVO;
+import com.outzone.pojo.vo.LoginUserVO;
 import com.outzone.pojo.UserDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UserDetails;

@@ -14,14 +14,29 @@ import lombok.experimental.Accessors;
 @NoArgsConstructor
 @Accessors(chain = true)
 @TableName("groups")
+
 public class GroupsDTO {
-    @TableId(value = "groupId" ,type = IdType.ASSIGN_ID)
+    @TableId(value = "id" ,type = IdType.ASSIGN_ID)
+    Long id;
+    @TableField("groupId")
     Long groupId;
 
     @TableField("userId")
     long userId;
     @TableField("groupName")
     String groupName;
-
+    @TableField("isMember")
+    Boolean isMemeber;
+    @TableField("icon")
+    String icon;
     String role;
+
+    public GroupsDTO(Long id, Long groupId, long userId, String groupName, Boolean isMemeber, String role) {
+        this.id = id;
+        this.groupId = groupId;
+        this.userId = userId;
+        this.groupName = groupName;
+        this.isMemeber = isMemeber;
+        this.role = role;
+    }
 }

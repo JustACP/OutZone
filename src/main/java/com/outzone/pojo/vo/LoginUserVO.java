@@ -1,6 +1,7 @@
-package com.outzone.pojo;
+package com.outzone.pojo.vo;
 
 import com.alibaba.fastjson.annotation.JSONField;
+import com.outzone.pojo.UserDTO;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

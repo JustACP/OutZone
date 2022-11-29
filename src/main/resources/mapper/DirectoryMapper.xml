@@ -36,8 +36,16 @@
             #{id}
         </foreach>
     </select>
+    <select id="searchDirByName" resultMap="content">
+        <bind name="like" value="'%'+fileName+'%'"/>
+        SELECT directory.directoryId,directory.parentDirectoryId,
+        directory.ownerId,directory.name,directory.absolutePath,
+        directory.isGroupDirectory
+        FROM directory WHERE (directory.name  LIKE #{like})
+        AND directory.ownerId = #{ownerId} AND directory.isGroupDirectory = #{isGroup};
+    </select>
 
-    <resultMap id="content" type="com.outzone.pojo.ContentVO">
+    <resultMap id="content" type="com.outzone.pojo.vo.ContentVO">
         <constructor>
             <idArg column="directoryId" javaType="long" />
             <arg column="name" javaType="String" />

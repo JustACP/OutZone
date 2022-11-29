@@ -1,11 +1,10 @@
 package com.outzone.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.outzone.pojo.ContentVO;
+import com.outzone.pojo.vo.ContentVO;
 import com.outzone.pojo.DirectoryDTO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-import org.springframework.security.core.parameters.P;
 
 import java.util.List;
 
@@ -21,4 +20,6 @@ public interface DirectoryMapper extends BaseMapper<DirectoryDTO> {
     void delAllSubDir(@Param(value = "nowPath")String nowPath,
                                     @Param(value = "isGroup")boolean isGroup,
                                     @Param(value = "ownerId") Long ownerId);
+
+    List<ContentVO> searchDirByName(@Param("ownerId") Long ownerId, @Param("fileName") String fileName,@Param("isGroup")boolean isGroup);
 }

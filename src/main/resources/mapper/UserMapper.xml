@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.outzone.mapper.UserMapper">
+    <select id="searchUserByUsername" resultType="com.outzone.pojo.vo.FriendsVO">
+        <bind name="toSearchUsername" value="'%'+username+'%'" />
+        SELECT user.id,user.username,friends.isFriend,user.icon
+        FROM user
+        LEFT JOIN friends
+        ON user.id = friends.inviteUserId
+        WHERE user.username like #{toSearchUsername}
+        ORDER BY friends.isFriend DESC;
+    </select>
+</mapper>

@@ -14,7 +14,10 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.sql.Timestamp;
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 
 @Service
 public class FileUploadService{
@@ -264,10 +267,10 @@ public class FileUploadService{
         String type = newFile.getFileType();
         if(type.equals("apk")){
             newFile.setIcon(StaticValue.url + "/icon/apk.png");
-        } else if(StaticValue.audioPrefix.contains(type)){
+        } else if(StaticValue.audioPrefixSet.contains(type)){
             newFile.setIcon(StaticValue.url + "/icon/audio.png");
 
-        }else if(StaticValue.compressionPrefix.contains(type)) {
+        }else if(StaticValue.compressionPrefixSet.contains(type)) {
             newFile.setIcon(StaticValue.url + "/icon/compression.png");
         }else if(type.equals("docx")){
             newFile.setIcon(StaticValue.url + "/icon/docx.png");

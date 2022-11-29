@@ -1,13 +1,12 @@
-package com.outzone.pojo;
+package com.outzone.pojo.vo;
 
+import com.outzone.pojo.StaticValue;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.sql.Date;
-import java.sql.Timestamp;
 
 
 @Data

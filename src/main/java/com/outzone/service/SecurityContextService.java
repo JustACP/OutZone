@@ -1,6 +1,6 @@
 package com.outzone.service;
 
-import com.outzone.pojo.LoginUserVO;
+import com.outzone.pojo.vo.LoginUserVO;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 

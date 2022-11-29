@@ -1,32 +1,36 @@
 package com.outzone.controller;
 
-import com.outzone.pojo.LoginUserVO;
-import com.outzone.pojo.ResponseResult;
-import com.outzone.pojo.UserDTO;
+import com.outzone.mapper.UserFileMapper;
+import com.outzone.pojo.*;
+import com.outzone.pojo.vo.LoginUserVO;
 import com.outzone.service.LoginService;
+import com.outzone.service.SecurityContextService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.mail.MessagingException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Objects;
 
 @Controller
 @RequestMapping("/api/user")
+
 public class UserController {
     @Resource
     private LoginService loginService;
 
+    @Resource
+    SecurityContextService securityContextService;
+    @Resource
+    UserFileMapper userFileMapper;
 
 
 
@@ -79,5 +83,23 @@ public class UserController {
 
         return loginService.sendRegisterCode(registerUserDTO);
     }
+
+    @GetMapping("/getCapacity")
+    @ResponseBody
+    public ResponseResult getCapacity(){
+        UserDTO requestUser =  securityContextService.getUserFromContext().getUserDTO();
+        ResponseResult ok = new ResponseResult(HttpStatus.OK.value(),"已用空间");
+        ResponseResult forbidden= new ResponseResult(HttpStatus.FORBIDDEN.value(), "无权访问");
+        if(Objects.isNull(requestUser)){
+            return forbidden;
+        }
+        HashMap<String,Long> capacity = new HashMap<>();
+        capacity.put("used", userFileMapper.getUserStorageCapacity(requestUser.getId()));
+        capacity.put("total", StaticValue.userTotalCapacity);
+        ok.setData(capacity);
+        return ok;
+
+    }
+
 
 }

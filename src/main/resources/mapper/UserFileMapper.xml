@@ -15,7 +15,7 @@
                             ON user_file.fileId = file.id
         where (user_file.absolutePath = #{absolutePath} AND user_file.userId = #{userId});
     </select>
-    <resultMap id="content" type="com.outzone.pojo.ContentVO">
+    <resultMap id="content" type="com.outzone.pojo.vo.ContentVO">
         <result column="fileName" property="name"/>
         <result column="fileSize" property="size"/>
         <result column="id" property="id" />
@@ -57,6 +57,58 @@
         <foreach collection="list" item="id" index="index" open="(" close=")" separator=", ">
             #{id}
         </foreach>
+    </select>
+    <select id="searchFilesByName" resultMap="content">
+        <bind name="like" value="'%'+fileName+'%'"/>
+        SELECT
+        user_file.fileName,file.fileSize,
+        user_file.id,user_file.parentDirectoryId,
+        file.fileType,file.icon,user_file.absolutePath,
+        user_file.uploadDate
+        FROM user_file
+        INNER JOIN file
+        ON user_file.fileId = file.id
+        where (user_file.fileName LIKE #{like}) AND user_file.userId = #{userId};
+    </select>
+    <select id="groupByType" resultMap="content">
+        SELECT
+            user_file.fileName,file.fileSize,
+            user_file.id,user_file.parentDirectoryId,
+            file.fileType,file.icon,user_file.absolutePath,
+            user_file.uploadDate
+        FROM user_file
+        INNER JOIN file
+        ON user_file.fileId = file.id
+        WHERE  user_file.userId = #{userId}
+        AND file.fileType in
+        <foreach collection="prefix" item="prefix" separator="," open="(" close=")" index="index">
+            #{prefix}
+        </foreach>
+    </select>
+
+    <select id="groupExcludeType" resultMap="content">
+        SELECT
+        user_file.fileName,file.fileSize,
+        user_file.id,user_file.parentDirectoryId,
+        file.fileType,file.icon,user_file.absolutePath,
+        user_file.uploadDate
+        FROM user_file
+        INNER JOIN file
+        ON user_file.fileId = file.id
+        WHERE  user_file.userId = #{userId}
+        AND file.fileType not in
+        <foreach collection="prefix" item="prefix" separator="," open="(" close=")" index="index">
+            #{prefix}
+        </foreach>
+    </select>
+    <select id="getUserStorageCapacity" resultType="java.lang.Long">
+        select sum(file.fileSize)
+        from file
+        where file.id in
+              (SELECT distinct user_file.fileId
+               from user_file
+               inner join file on user_file.fileId = file.id
+               where user_file.userId = #{userId});
     </select>
 
 </mapper>

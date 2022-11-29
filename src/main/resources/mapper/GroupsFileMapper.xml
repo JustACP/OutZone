@@ -34,7 +34,7 @@
     </select>
 
 
-    <resultMap id="content" type="com.outzone.pojo.ContentVO">
+    <resultMap id="content" type="com.outzone.pojo.vo.ContentVO">
         <result column="fileName" property="name"/>
         <result column="fileSize" property="size"/>
         <result column="id" property="id" />

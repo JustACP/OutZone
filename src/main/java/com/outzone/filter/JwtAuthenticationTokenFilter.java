@@ -1,7 +1,7 @@
 package com.outzone.filter;
 
 import com.alibaba.fastjson2.JSONObject;
-import com.outzone.pojo.LoginUserVO;
+import com.outzone.pojo.vo.LoginUserVO;
 import com.outzone.util.JwtUtil;
 import com.outzone.util.RedisUtil;
 import io.jsonwebtoken.Claims;

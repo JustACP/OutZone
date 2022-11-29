@@ -4,6 +4,7 @@ import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.outzone.mapper.*;
 import com.outzone.pojo.*;
+import com.outzone.pojo.vo.LoginUserVO;
 import com.outzone.util.JwtUtil;
 import com.outzone.util.RedisUtil;
 import com.outzone.util.VerifiCodeUtil;

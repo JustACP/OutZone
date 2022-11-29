@@ -1,7 +1,7 @@
 package com.outzone.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.outzone.pojo.ContentVO;
+import com.outzone.pojo.vo.ContentVO;
 import com.outzone.pojo.GroupFileDTO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;

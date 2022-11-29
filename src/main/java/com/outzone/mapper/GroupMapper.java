@@ -6,8 +6,6 @@ import com.outzone.pojo.UserDTO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
-import java.util.List;
-
 @Mapper
 public interface GroupMapper extends BaseMapper<GroupsDTO> {
     public UserDTO getGroupMaster(@Param("groupId") Long groupId);

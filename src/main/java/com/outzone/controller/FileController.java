@@ -6,6 +6,7 @@ import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.outzone.mapper.*;
 import com.outzone.pojo.*;
+import com.outzone.pojo.vo.ContentVO;
 import com.outzone.service.CloudFilesServices;
 import com.outzone.service.FileUploadService;
 import com.outzone.service.SecurityContextService;
@@ -105,7 +106,7 @@ public class FileController {
 
         }else{
             responseResult.setCode(210);
-            responseResult.setMsg("文件已存在");
+            responseResult.setMsg("文件不存在");
             Map<String,Boolean> isSkip = new HashMap<>();
             isSkip.put("isSkip",false);
             isSkip.put("needMerge", true);
@@ -174,16 +175,21 @@ public class FileController {
                 filePrefix = "null";
             }
 
-            FileDTO newFile = new FileDTO();
-            newFile
+            FileDTO newFile = fileMapper.selectOne(new LambdaQueryWrapper<FileDTO>()
+                    .eq(FileDTO::getMd5,file.getIdentifier()));
+            if(Objects.isNull(newFile)){
+                newFile = new FileDTO();
+                newFile
+                        .setFileSize(file.getTotalSize())
+                        .setFilename(file.getFilename())
+                        .setMd5(file.getIdentifier())
+                        .setCount(0)
+                        .setPhysicalPath(uploadFilePath+file.getIdentifier())
+                        .setUploadtime(new Timestamp(new Date().getTime()))
+                        .setFileType(filePrefix);
+                fileMapper.insert(newFile);
+            }
 
-                    .setFileSize(file.getTotalSize())
-                    .setFilename(file.getFilename())
-                    .setMd5(file.getIdentifier())
-                    .setCount(0)
-                    .setPhysicalPath(uploadFilePath+file.getIdentifier())
-                    .setUploadtime(new Timestamp(new Date().getTime()))
-                    .setFileType(filePrefix);
 
             //TODO 等前端是不是icon上传到合并请求里面
             if(Objects.isNull(icon)){
@@ -207,7 +213,7 @@ public class FileController {
 
             }
 
-            fileMapper.insert(newFile);
+
             DirectoryDTO parentDirectoryDto = new DirectoryDTO();
             LambdaQueryWrapper<DirectoryDTO> directoryWrapper = new LambdaQueryWrapper<>();
 
@@ -284,7 +290,7 @@ public class FileController {
 
     @RequestMapping("/download")
     @ResponseBody
-    public ResponseResult<String> download(@RequestBody  DownloadBasicInfoVo downloadBasicInfo) throws ServletException, IOException {
+    public ResponseResult<String> download(DownloadBasicInfoVo downloadBasicInfo) throws ServletException, IOException {
         UserDTO requestUser = securityContextService.getUserFromContext().getUserDTO();
 
         Long fileId = downloadBasicInfo.getId();
@@ -658,13 +664,53 @@ public class FileController {
 
 
 
+    @GetMapping("/searchFiles")
+    @ResponseBody
+    public ResponseResult searchFile(@RequestParam String fileName,@RequestParam Long groupId){
+        ResponseResult<List> ok = new ResponseResult(HttpStatus.OK.value(),"搜索文件");
+        UserDTO requestUser = securityContextService.getUserFromContext().getUserDTO();
+        List<ContentVO> res =  directoryMapper.searchDirByName((groupId != -1)?groupId:requestUser.getId(),fileName,groupId != -1);
+        if(groupId == -1){
+            res.addAll(userFileMapper.searchFilesByName(requestUser.getId(),fileName));
+        }
+
+        ok.setData(res);
+        return ok;
+
+    }
+
+    @GetMapping("/groupByFileType")
+    @ResponseBody
+    public ResponseResult groupByFileType(@RequestParam String fileType){
+        ResponseResult ok = new ResponseResult(HttpStatus.OK.value(),"文件类别");
+        ResponseResult forbidden= new ResponseResult(HttpStatus.FORBIDDEN.value(),"非法请求");
+        UserDTO requestUser = securityContextService.getUserFromContext().getUserDTO();
+        if(!StaticValue.fileTypeGroup.contains(fileType)) return forbidden;
+        List<ContentVO> res = null;
+        if(fileType.equals("document")){
+            res = userFileMapper.groupByType(requestUser.getId(),StaticValue.documentPrefixList);
+        }else if(fileType.equals("video")){
+            res = userFileMapper.groupByType(requestUser.getId(),StaticValue.videoPrefixList);
+        }else if(fileType.equals("audio")){
+            res = userFileMapper.groupByType(requestUser.getId(),StaticValue.audioPrefixList);
+        }else if(fileType.equals("picture")){
+            res = userFileMapper.groupByType(requestUser.getId(),StaticValue.picturePrefixList);
+        }else{
+            List<String> allPrefix = new ArrayList<String>();
+            allPrefix.addAll(StaticValue.videoPrefixList);
+            allPrefix.addAll(StaticValue.picturePrefixList);
+            allPrefix.addAll(StaticValue.audioPrefixSet);
+            allPrefix.addAll(StaticValue.documentPrefixList);
+            res = userFileMapper.groupExcludeType(requestUser.getId(),allPrefix);
+        }
+        ok.setData(res);
+        return ok;
+    }
 
 
-//    @PostMapping("/tmpshare")
-//    public ResponseResult tmpShareFiles(){
-//        //todo 无状态用户分享文件
-//        return new ResponseResult();
-//    }
+
+
+
 
 
 
