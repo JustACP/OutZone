@@ -14,15 +14,24 @@
     
     <select id="getAdminList" resultMap="User">
         SELECT
-            user.id,user.username
+            user.id,user.username,user.icon
         FROM user
                  INNER JOIN groups
                             ON user.id = groups.userId
         where (groups.groupId = #{groupId} AND groups.role = "admin");
     </select>
+    <select id="getGroupUserList" resultMap="User">
+        SELECT
+            user.id,user.username,user.icon
+        FROM user
+                 INNER JOIN groups
+                            ON user.id = groups.userId
+        where (groups.groupId = #{groupId} AND groups.isMember = true);
+    </select>
     <resultMap id="User" type="com.outzone.pojo.UserDTO">
         <result column="id" property="id"/>
         <result column="username" property="username"/>
+        <result column="icon" property="icon"/>
     </resultMap>
 
 

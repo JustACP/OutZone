@@ -10,7 +10,7 @@ import java.util.List;
 
 @Mapper
 public interface DirectoryMapper extends BaseMapper<DirectoryDTO> {
-    List<ContentVO> getDirList( String parentDirectory, Long ownerId, boolean isGroup);
+    List<ContentVO> getDirList(@Param("parentDirectory") String parentDirectory, Long ownerId, boolean isGroup);
 
     List<ContentVO> getDirListById(List<Long> id);
     List<DirectoryDTO> getAllSubDir(@Param(value = "nowPath")String nowPath,

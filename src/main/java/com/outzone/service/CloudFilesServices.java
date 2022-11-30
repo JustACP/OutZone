@@ -260,40 +260,41 @@ public class CloudFilesServices {
 
     }
 
-    public ResponseResult deleteFiles(UserDTO requestUser, ContentVO toDeleteDir, DirectoryDTO destination
+    public ResponseResult deleteFiles(UserDTO requestUser, ContentVO toDeleteFiles, DirectoryDTO destination
             , Long groupId){
 
         okResult.setMsg("删除成功");
 
         ResponseResult okResult= new ResponseResult<>(HttpStatus.OK.value(), "移动成功");
-        DirectoryDTO toUpdateDir = directoryMapper.selectOne(new LambdaQueryWrapper<DirectoryDTO>()
-                .eq(DirectoryDTO::getOwnerId,requestUser.getId())
-                .eq(DirectoryDTO::getDirectoryId,toDeleteDir.getId())
-                .eq(DirectoryDTO::isGroupDirectory,groupId != -1L));
-        if(Objects.isNull(toUpdateDir)) return new ResponseResult(HttpStatus.NOT_FOUND.value(), "文件不存在");
-        if(groupId == -1L){
 
-            if(Objects.isNull(toUpdateDir)){
+
+        if(groupId == -1L){
+            UserFileDTO toDeleteFile =  userFileMapper.selectOne(new LambdaQueryWrapper<UserFileDTO>()
+                    .eq(UserFileDTO::getUserId,requestUser.getId())
+                    .eq(UserFileDTO::getId,toDeleteFiles.getId()));
+            if(Objects.isNull(toDeleteFile)){
                 return notFountResult;
             }
 
-            directoryMapper.deleteById(toUpdateDir.getDirectoryId());
+            userFileMapper.deleteById(toDeleteFile.getId());
         }else{
             GroupsDTO userGroupRole = groupMapper.selectOne(new LambdaQueryWrapper<GroupsDTO>()
                     .eq(GroupsDTO::getGroupId,groupId)
                     .eq(GroupsDTO::getUserId,requestUser.getId()));
 
             if(Objects.isNull(userGroupRole)) return forbiddenResult;
-
-
+            GroupFileDTO toDeleteFile = groupFileMapper.selectOne(new LambdaQueryWrapper<GroupFileDTO>()
+                    .eq(GroupFileDTO::getGroupId,groupId)
+                    .eq(GroupFileDTO::getId,toDeleteFiles.getId()));
+            if(Objects.isNull(toDeleteFile)) return notFountResult;
             if(userGroupRole.getRole().equals("user")){
 
-                if(toUpdateDir.getOwnerId() != requestUser.getId()) return forbiddenResult;
+                if(toDeleteFile.getUserId() != requestUser.getId()) return forbiddenResult;
 
             }else if(userGroupRole.equals("admin")){
 
                 UserDTO master = groupMapper.getGroupMaster(Long.valueOf(groupId));
-                if(toUpdateDir.getOwnerId() == master.getId()) return forbiddenResult;
+                if(toDeleteFile.getUserId() == master.getId()) return forbiddenResult;
 
             }else if(userGroupRole.getRole().equals("master")){
             }else{
@@ -301,7 +302,7 @@ public class CloudFilesServices {
             }
 
 
-            directoryMapper.deleteById(toUpdateDir.getDirectoryId());
+            groupFileMapper.deleteById(toDeleteFile.getId());
         }
         return okResult;
 

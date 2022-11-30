@@ -18,12 +18,13 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-// Todo 创建群组
-// Todo 销毁群组
+
+
 // Todo 添加管理员
 // Todo 上传
 // Todo 移动
@@ -103,7 +104,7 @@ public class GroupController {
 
     @PostMapping("/inviteUser")
     @ResponseBody
-    public ResponseResult inviteUser(@RequestParam String JSONString ){
+    public ResponseResult inviteUser(@RequestBody String JSONString ){
         ok.setData(null);
         UserDTO requestUser = securityContextService.getUserFromContext().getUserDTO();
 
@@ -128,4 +129,123 @@ public class GroupController {
         return ok;
 
     }
+
+    @GetMapping("/exitGroup")
+    @ResponseBody
+    public ResponseResult existGroup(HttpServletRequest request){
+
+        ok.setData(null);
+        UserDTO requestUser = securityContextService.getUserFromContext().getUserDTO();
+        Long groupId  = Long.valueOf(request.getParameter("groupId"));
+        GroupsDTO isExist = groupMapper.selectOne(new LambdaQueryWrapper<GroupsDTO>()
+                .eq(GroupsDTO::getGroupId,groupId)
+                .eq(GroupsDTO::getUserId,requestUser.getId())
+                .eq(GroupsDTO::getIsMemeber,true));
+        if(Objects.isNull(isExist)) return failed;
+        if(isExist.getRole().equals("master")){
+            groupMapper.delete(new LambdaQueryWrapper<GroupsDTO>()
+                    .eq(GroupsDTO::getGroupId, groupId));
+        }else{
+            groupMapper.deleteById(isExist.getId());
+        }
+
+        return ok;
+
+    }
+    @GetMapping("/getGroupList")
+    @ResponseBody
+    public ResponseResult getGroupList(HttpServletRequest request){
+        ok.setData(null);
+        UserDTO requestUser = securityContextService.getUserFromContext().getUserDTO();
+        List<GroupsDTO> groupsList = groupMapper.selectList(new LambdaQueryWrapper<GroupsDTO>()
+                .eq(GroupsDTO::getUserId,requestUser.getId())
+                .eq(GroupsDTO::getIsMemeber,true));
+
+        HashMap<String,List> map = new HashMap<>();
+        map.put("groups",groupsList);
+        ok.setData(map);
+        return ok;
+    }
+
+    @GetMapping("/getGroupInviteList")
+    @ResponseBody
+    public ResponseResult getGroupInviteList(HttpServletRequest request){
+        ok.setData(null);
+        UserDTO requestUser = securityContextService.getUserFromContext().getUserDTO();
+        List<GroupsDTO> groupsList = groupMapper.selectList(new LambdaQueryWrapper<GroupsDTO>()
+                .eq(GroupsDTO::getUserId,requestUser.getId())
+                .eq(GroupsDTO::getIsMemeber,false));
+
+        HashMap<String,List> map = new HashMap<>();
+        map.put("groupsInvite",groupsList);
+        ok.setData(map);
+        return ok;
+    }
+
+    @GetMapping("/getGroupUserList")
+    @ResponseBody
+    public ResponseResult getGroupUserList(HttpServletRequest request){
+        ok.setData(null);
+        UserDTO requestUser = securityContextService.getUserFromContext().getUserDTO();
+        Long groupId  = Long.valueOf(request.getParameter("groupId"));
+        GroupsDTO isExist = groupMapper.selectOne(new LambdaQueryWrapper<GroupsDTO>()
+                .eq(GroupsDTO::getGroupId,groupId)
+                .eq(GroupsDTO::getUserId,requestUser.getId())
+                .eq(GroupsDTO::getIsMemeber,true));
+        if(Objects.isNull(isExist)) return failed;
+
+        List<UserDTO> groupUser = groupMapper.getGroupUserList(groupId);
+
+        HashMap<String,List> map = new HashMap<>();
+        map.put("users",groupUser);
+        ok.setData(map);
+        return ok;
+
+    }
+
+    @GetMapping("/destoryGroup")
+    @ResponseBody
+    public ResponseResult destoryGroup(HttpServletRequest request){
+        ok.setData(null);
+        UserDTO requestUser = securityContextService.getUserFromContext().getUserDTO();
+        Long groupId  = Long.valueOf(request.getParameter("groupId"));
+        GroupsDTO isExist = groupMapper.selectOne(new LambdaQueryWrapper<GroupsDTO>()
+                .eq(GroupsDTO::getGroupId,groupId)
+                .eq(GroupsDTO::getUserId,requestUser.getId())
+                .eq(GroupsDTO::getIsMemeber,true));
+        if(Objects.isNull(isExist)) return failed;
+        if(!isExist.getRole().equals("master")) return forbidden;
+        groupMapper.delete(new LambdaQueryWrapper<GroupsDTO>()
+                .eq(GroupsDTO::getGroupId,groupId));
+
+        return ok;
+
+    }
+
+    @PostMapping("/kickUser")
+    @ResponseBody
+    public ResponseResult kickUser(@RequestBody String JSONString ) {
+        ok.setData(null);
+        UserDTO requestUser = securityContextService.getUserFromContext().getUserDTO();
+
+        Long groupId = JSON.parseObject(JSONString).getLong("groupId");
+        GroupsDTO isAdmin = groupMapper.selectOne(new LambdaQueryWrapper<GroupsDTO>()
+                .eq(GroupsDTO::getGroupId, groupId)
+                .eq(GroupsDTO::getUserId, requestUser.getId()));
+        if (Objects.isNull(isAdmin)) return failed;
+        if (!isAdmin.getRole().equals("master") && !isAdmin.getRole().equals("admin")) return forbidden;
+
+        List<Long> toInviteUserId = JSONArray.parseArray(JSON.parseObject(JSONString).getString("userId"));
+
+        List<UserDTO> toAddUsers = userMapper.selectBatchIds(toInviteUserId);
+        if (toInviteUserId.size() != toAddUsers.size()) return failed;
+        toAddUsers.stream()
+                .map(toKick -> toKick.getId())
+                .collect(Collectors.toList());
+        groupMapper.deleteBatchIds(toAddUsers);
+        return ok;
+    }
+
+
+
 }

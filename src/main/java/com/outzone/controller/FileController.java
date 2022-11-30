@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -243,7 +244,7 @@ public class FileController {
 
         String absolutePath = (String) JSONObject.parseObject(absolutePathJSON).get("absolutePath");
 
-        List<ContentVO> resList = directoryMapper.getDirList(absolutePath, requestUser.getId(),groupId != -1);;
+        List<ContentVO> resList = directoryMapper.getDirList(absolutePath, (groupId!=-1)?groupId:requestUser.getId(),groupId != -1);;
 
         if(Objects.isNull(groupId) ||groupId == -1){
             resList.addAll(userFileMapper.getUserFileList(absolutePath, requestUser.getId()));
@@ -449,9 +450,10 @@ public class FileController {
         DirectoryDTO destination;
         if(!Objects.isNull(requestUser) && !toDeleteFiles.isEmpty()){
             destination = directoryMapper.selectOne(new LambdaQueryWrapper<DirectoryDTO>()
-                    .eq(DirectoryDTO::getOwnerId,requestUser.getId())
+                    .eq(DirectoryDTO::getOwnerId,(groupId != -1)?groupId:requestUser.getId())
                     .eq(DirectoryDTO::getAbsolutePath,destPath)
                     .eq(DirectoryDTO::isGroupDirectory,groupId != -1));
+
             if(Objects.isNull(destination)) return result;
 
 
@@ -465,9 +467,6 @@ public class FileController {
 
                 }
             }
-
-
-
 
         }
 
@@ -707,8 +706,84 @@ public class FileController {
         return ok;
     }
 
+    @PostMapping("/renameFile")
+    @ResponseBody
+    public ResponseResult renameFile(@RequestBody String JSONString){
+        ResponseResult ok = new ResponseResult(HttpStatus.OK.value(),"请求成功");
+        ResponseResult forbidden = new ResponseResult(HttpStatus.FORBIDDEN.value(),"非法请求");
+        ResponseResult notFound = new ResponseResult(HttpStatus.NOT_FOUND.value(), "没有找到");
+        UserDTO requestUser = securityContextService.getUserFromContext().getUserDTO();
+        Long groupId = JSON.parseObject(JSONString).getLong("groupId");
+        Long fileId = JSON.parseObject(JSONString).getLong("id");
+        String newFileName = JSON.parseObject(JSONString).getString("newName");
+
+        if(groupId == -1){
+            UserFileDTO userFile = userFileMapper.selectOne(new LambdaQueryWrapper<UserFileDTO>()
+                    .eq(UserFileDTO::getId,fileId)
+                    .eq(UserFileDTO::getUserId,requestUser.getId()));
+
+            if(Objects.isNull(userFile)) return notFound;
+            userFile.setFileName(newFileName);
+            userFileMapper.updateById(userFile);
+
+        }else {
+            GroupFileDTO groupFile = groupFileMapper.selectOne(new LambdaQueryWrapper<GroupFileDTO>()
+                    .eq(GroupFileDTO::getId,fileId)
+                    .eq(GroupFileDTO::getGroupId,groupId));
+
+            groupFile.setFileName(newFileName);
+            groupFileMapper.updateById(groupFile);
+        }
+
+        return ok;
 
 
+    }
+
+
+    @PostMapping("/renameDir")
+    @ResponseBody
+    public ResponseResult renameDir(@RequestBody String JSONString){
+        ResponseResult ok = new ResponseResult(HttpStatus.OK.value(),"请求成功");
+        ResponseResult forbidden = new ResponseResult(HttpStatus.FORBIDDEN.value(),"非法请求");
+        ResponseResult notFound = new ResponseResult(HttpStatus.NOT_FOUND.value(), "没有找到");
+        UserDTO requestUser = securityContextService.getUserFromContext().getUserDTO();
+        Long groupId = JSON.parseObject(JSONString).getLong("groupId");
+        Long dirId = JSON.parseObject(JSONString).getLong("id");
+        String newFileName = JSON.parseObject(JSONString).getString("newName");
+
+        DirectoryDTO renamedir  = directoryMapper.selectOne(new LambdaQueryWrapper<DirectoryDTO>()
+                .eq(DirectoryDTO::getDirectoryId,dirId)
+                .eq(DirectoryDTO::getOwnerId,(groupId !=-1)?groupId:requestUser.getId())
+                .eq(DirectoryDTO::isGroupDirectory,groupId!=-1));
+
+        if(Objects.isNull(renamedir)) return notFound;
+        DirectoryDTO parent = directoryMapper.selectById(renamedir.getParentDirectoryId());
+        List<ContentVO> nowDir = directoryMapper.getDirList(parent.getAbsolutePath(),
+                (groupId!=-1)?groupId:requestUser.getId(),groupId!=-1);
+
+        for(int i = 0; i < nowDir.size();i++){
+            if(nowDir.get(i).getName().equals(newFileName) &&
+             nowDir.get(i).getId()!=dirId) return forbidden;
+        }
+
+        renamedir.setName(newFileName);
+        String[] spiltOfPath = renamedir.getAbsolutePath().split("/");
+        String endName = "/";
+
+        List<String>param = Arrays.stream(spiltOfPath)
+                .filter(stringName -> !stringName.isEmpty())
+                .collect(Collectors.toList());
+
+        for(int i = 0; i < param.size() - 1;i++){
+            endName+=spiltOfPath[i]+"/";
+        }
+        endName+=newFileName.substring(1);
+        renamedir.setAbsolutePath(endName);
+        directoryMapper.updateById(renamedir);
+        return ok;
+
+    }
 
 
 
