@@ -21,7 +21,7 @@ import java.util.Date;
 public class MenuDTO implements Serializable {
     private  static final long serialVersionUID = 200;
 
-    @TableId(value = "id" ,type = IdType.ASSIGN_ID)
+    @TableId(value = "id", type = IdType.INPUT)
     private Long id;
     private  String menuName;
 

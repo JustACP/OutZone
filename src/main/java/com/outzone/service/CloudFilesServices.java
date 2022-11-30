@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.outzone.mapper.*;
 import com.outzone.pojo.*;
 import com.outzone.pojo.vo.ContentVO;
+import com.outzone.util.IdGeneratorUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -241,7 +242,7 @@ public class CloudFilesServices {
 
             copiedFiles.setAbsolutePath(destination.getAbsolutePath());
 
-            copiedFiles.setId(Long.valueOf(null));
+            copiedFiles.setId(IdGeneratorUtil.generateId());
 
             userFileMapper.insert(copiedFiles);
         }else{
@@ -252,7 +253,7 @@ public class CloudFilesServices {
             copiedFiles.setFileName(toCopyFile.getName());
             copiedFiles.setUserId(requestUser.getId());
             copiedFiles.setUploadDate(new Timestamp(new Date().getTime()));
-            copiedFiles.setId(Long.valueOf(null));
+            copiedFiles.setId(IdGeneratorUtil.generateId());
             groupFileMapper.insert(copiedFiles);
         }
 
@@ -342,7 +343,7 @@ public class CloudFilesServices {
                     copyTmp.setAbsolutePath(copyTmp.getAbsolutePath().replaceAll(allParentDir.getAbsolutePath(), destination.getAbsolutePath()));
                 }
             }
-            copyTmp.setIdAsNull();
+            copyTmp.setDirectoryId(IdGeneratorUtil.generateId());
             copyTmp.setParentDirectoryId((destination.getDirectoryId()));
 
             copiedDirList.put(copyTmp.getAbsolutePath(),copyTmp);
@@ -368,6 +369,7 @@ public class CloudFilesServices {
                 DirectoryDTO tmpParentDir = copiedDirList.get(userFileTmp.getAbsolutePath());
                 userFileTmp.setParentDirectoryId(tmpParentDir.getDirectoryId());
                 userFileTmp.setUploadDate(new Timestamp(new Date().getTime()));
+                userFileTmp.setId(IdGeneratorUtil.generateId());
                 userFileMapper.insert(userFileTmp);
             }
 
@@ -392,6 +394,7 @@ public class CloudFilesServices {
                 groupFileTmp.setParentDirectoryId(tmpParentDir.getDirectoryId());
                 groupFileTmp.setUploadDate(new Timestamp(new Date().getTime()));
                 groupFileTmp.setUserId(requestUser.getId());
+                groupFileTmp.setId(IdGeneratorUtil.generateId());
                 groupFileMapper.insert(groupFileTmp);
             }
 
@@ -459,13 +462,14 @@ public class CloudFilesServices {
                 DirectoryDTO parent = copiedDirList.get(copyTmp.getAbsolutePath().replaceAll(copyTmp.getName(), "/"));
                 if(Objects.isNull(parent)) copyTmp.setParentDirectoryId(destination.getDirectoryId());
                 else copyTmp.setParentDirectoryId(parent.getDirectoryId());
-                copyTmp.setDirectoryId(IdWorker.getId(copyTmp));
+
+                copyTmp.setDirectoryId(IdGeneratorUtil.generateId());
 
                 copyTmp.setOwnerId((destGroupId !=-1)?destGroupId: requestUser.getId());
                 copyTmp.setGroupDirectory((destGroupId != -1));
 
                 copiedDirList.put(copyTmp.getAbsolutePath(),copyTmp);
-
+                copyTmp.setDirectoryId(IdGeneratorUtil.generateId());
                 directoryMapper.insert(copyTmp);
             }
 
@@ -493,6 +497,7 @@ public class CloudFilesServices {
                         else userFileTmp.setParentDirectoryId(tmpParentDir.getDirectoryId());
                         userFileTmp.setUserId(requestUser.getId());
                         userFileTmp.setUploadDate(new Timestamp(new Date().getTime()));
+                        userFileTmp.setId(IdGeneratorUtil.generateId());
                         userFileMapper.insert(userFileTmp);
                     }else{
                         GroupFileDTO groupFileTmp = new GroupFileDTO();
@@ -513,7 +518,7 @@ public class CloudFilesServices {
                         groupFileTmp.setUserId(requestUser.getId());
                         groupFileTmp.setFileName(userFileTmp.getFileName());
                         groupFileTmp.setGroupId(destGroupId);
-
+                        groupFileTmp.setId(IdGeneratorUtil.generateId());
                         groupFileMapper.insert(groupFileTmp);
                     }
                 }
@@ -545,6 +550,7 @@ public class CloudFilesServices {
                         groupFileTmp.setGroupId(destGroupId);
 
                         groupFileTmp.setUserId(requestUser.getId());
+                        groupFileTmp.setFileId(IdGeneratorUtil.generateId());
                         groupFileMapper.insert(groupFileTmp);
                     }else{
                         UserFileDTO userFileTmp = new UserFileDTO();
@@ -563,6 +569,7 @@ public class CloudFilesServices {
                         else userFileTmp.setParentDirectoryId(tmpParentDir.getDirectoryId());
                         userFileTmp.setUserId(requestUser.getId());
                         userFileTmp.setUploadDate(new Timestamp(new Date().getTime()));
+                        userFileTmp.setId(IdGeneratorUtil.generateId());
                         userFileMapper.insert(userFileTmp);
                     }
 
@@ -588,7 +595,7 @@ public class CloudFilesServices {
 
                     copiedFiles.setAbsolutePath(destination.getAbsolutePath());
 
-                    copiedFiles.setId(null);
+                    copiedFiles.setId(IdGeneratorUtil.generateId());
                     copiedFiles.setParentDirectoryId(destination.getParentDirectoryId());
                     copiedFiles.setUserId(requestUser.getId());
                     copiedFiles.setUploadDate(new Timestamp(new Date().getTime()));
@@ -600,7 +607,7 @@ public class CloudFilesServices {
                                     .setFileId(toStorageFile.getId())
                                     .setFileName(toStorageFile.getName())
                                     .setUploadDate(new Timestamp(new Date().getTime()))
-                                    .setId(null)
+                                    .setId(IdGeneratorUtil.generateId())
                                     .setParentDirectoryId(destination.getDirectoryId())
                                     .setGroupId(destGroupId)
                                     .setUserId(requestUser.getId());
@@ -610,7 +617,7 @@ public class CloudFilesServices {
             }else{
                 GroupFileDTO copiedFile = groupFileMapper.selectById(toStorageFile.getId());
                 if(destGroupId == -1){
-                    UserFileDTO toStorageIntoUser = new UserFileDTO(null, requestUser.getId(), copiedFile.getFileId(),
+                    UserFileDTO toStorageIntoUser = new UserFileDTO(IdGeneratorUtil.generateId(), requestUser.getId(), copiedFile.getFileId(),
                             destination.getDirectoryId(),destination.getAbsolutePath(),new Timestamp(new Date().getTime()),
                             toStorageFile.getName());
                     userFileMapper.insert(toStorageIntoUser);
@@ -618,6 +625,7 @@ public class CloudFilesServices {
                 }else{
                     copiedFile.setUserId(requestUser.getId())
                             .setUploadDate(new Timestamp(new Date().getTime()))
+                            .setId(IdGeneratorUtil.generateId())
                             .setAbsolutePath(destination.getAbsolutePath())
                             .setParentDirectoryId(destination.getParentDirectoryId());
                     groupFileMapper.insert(copiedFile);

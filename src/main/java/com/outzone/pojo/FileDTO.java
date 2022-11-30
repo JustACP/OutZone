@@ -17,7 +17,7 @@ import java.sql.Timestamp;
 @TableName("file")
 @Accessors(chain = true)
 public class FileDTO {
-    @TableId(value = "id",type = IdType.ASSIGN_ID)
+    @TableId(value = "id", type = IdType.INPUT)
     long id;
     String filename;
     long count;
@@ -29,6 +29,7 @@ public class FileDTO {
     Timestamp uploadtime;
     @TableField("fileSize")
     long fileSize;
+    @TableField("icon")
     String icon;
 
 }

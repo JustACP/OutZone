@@ -9,6 +9,7 @@ import com.outzone.pojo.ResponseResult;
 import com.outzone.pojo.UserDTO;
 import com.outzone.pojo.vo.FriendsVO;
 import com.outzone.service.SecurityContextService;
+import com.outzone.util.IdGeneratorUtil;
 import jdk.jfr.Frequency;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.http.HttpRequest;
@@ -69,7 +70,7 @@ public class FirendController {
 
         FriendsDTO friend = new FriendsDTO();
 
-        friend.setId(null)
+        friend.setId(IdGeneratorUtil.generateId())
                 .setIsFriend(false)
                 .setInviteId(requestUser.getId())
                 .setInvitedId(destUserId)
@@ -120,7 +121,7 @@ public class FirendController {
                         .setIsFriend(true)
                         .setInvitedId(allowFriend.getInviteId())
                         .setInviteId(allowFriend.getInvitedId())
-                        .setId(null);
+                        .setId(IdGeneratorUtil.generateId());
         allowFriend.setTime(newFriend.getTime());
         friendsMapper.updateById(allowFriend);
         friendsMapper.insert(newFriend);

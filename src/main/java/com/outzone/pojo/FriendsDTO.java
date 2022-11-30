@@ -18,7 +18,7 @@ import java.sql.Timestamp;
 @NoArgsConstructor
 @TableName(value = "friends")
 public class FriendsDTO {
-    @TableId (value = "id",type = IdType.ASSIGN_ID)
+    @TableId (value = "id", type = IdType.INPUT)
     Long id;
     @TableField(value = "inviteUserId")
     Long inviteId;

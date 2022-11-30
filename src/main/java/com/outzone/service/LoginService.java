@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.outzone.mapper.*;
 import com.outzone.pojo.*;
 import com.outzone.pojo.vo.LoginUserVO;
+import com.outzone.util.IdGeneratorUtil;
 import com.outzone.util.JwtUtil;
 import com.outzone.util.RedisUtil;
 import com.outzone.util.VerifiCodeUtil;
@@ -67,6 +68,7 @@ public class LoginService{
         Timestamp nowDateTime = new Timestamp(new Date().getTime());
         registerUserDTO.setRegisterTime(nowDateTime);
         registerUserDTO.setStatus(1);
+        registerUserDTO.setId(IdGeneratorUtil.generateId());
         userMapper.insert(registerUserDTO);
         userRoleMapper.setUserRole(registerUserDTO.getId(),2L);
         registerUserDTO = userMapper.selectOne(new LambdaQueryWrapper<UserDTO>().eq(UserDTO::getUsername,registerUserDTO.getUsername()));
@@ -75,7 +77,8 @@ public class LoginService{
                 .setAbsolutePath("/")
                 .setOwnerId(registerUserDTO.getId())
                 .setGroupDirectory(false)
-                .setName("/");
+                .setName("/")
+                .setDirectoryId(IdGeneratorUtil.generateId());
         directoryMapper.insert(userBasicDir);
 
         //先登陆一手

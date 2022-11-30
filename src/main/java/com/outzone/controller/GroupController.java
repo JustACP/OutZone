@@ -11,6 +11,7 @@ import com.outzone.pojo.GroupsDTO;
 import com.outzone.pojo.ResponseResult;
 import com.outzone.pojo.UserDTO;
 import com.outzone.service.SecurityContextService;
+import com.outzone.util.IdGeneratorUtil;
 import org.apache.coyote.Response;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -63,11 +64,11 @@ public class GroupController {
                 .collect(Collectors.toList());
         List<UserDTO> toAddUsers = userMapper.selectBatchIds(groupUser);
         if(groupUser.size()!=toAddUsers.size()) return failed;
-        Long groupId = IdWorker.getId();
-        GroupsDTO masterOfGroup = new GroupsDTO(null,groupId,requestUser.getId(),groupName,true,"master");
+        Long groupId = IdGeneratorUtil.generateId();
+        GroupsDTO masterOfGroup = new GroupsDTO(IdGeneratorUtil.generateId(),groupId,requestUser.getId(),groupName,true,"master");
         groupMapper.insert(masterOfGroup);
         for(int i = 0;i < toAddUsers.size();i++){
-            GroupsDTO groupMember = new GroupsDTO(null,groupId,toAddUsers.get(i).getId(),groupName,false,"user");
+            GroupsDTO groupMember = new GroupsDTO(IdGeneratorUtil.generateId(),groupId,toAddUsers.get(i).getId(),groupName,false,"user");
             groupMapper.insert(groupMember);
         }
 
@@ -122,7 +123,7 @@ public class GroupController {
         if(toInviteUserId.size()!=toAddUsers.size()) return failed;
 
         for(int i = 0;i < toAddUsers.size();i++){
-            GroupsDTO groupMember = new GroupsDTO(null,groupId,toAddUsers.get(i).getId(), isAdmin.getGroupName()
+            GroupsDTO groupMember = new GroupsDTO(IdGeneratorUtil.generateId(),groupId,toAddUsers.get(i).getId(), isAdmin.getGroupName()
                     , false,"user");
             groupMapper.insert(groupMember);
         }

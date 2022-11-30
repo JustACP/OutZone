@@ -21,7 +21,7 @@ public class UserDTO implements Serializable {
 
 
 
-    @TableId(value = "id" ,type = IdType.ASSIGN_ID)
+    @TableId(value = "id", type = IdType.INPUT)
     Long id;
     @TableField(value = "username")
     String username;

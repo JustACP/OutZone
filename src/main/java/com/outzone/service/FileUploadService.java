@@ -3,6 +3,7 @@ package com.outzone.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.outzone.mapper.*;
 import com.outzone.pojo.*;
+import com.outzone.util.IdGeneratorUtil;
 import com.outzone.util.MergeUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -215,6 +216,7 @@ public class FileUploadService{
         DirectoryDTO parentDirObj = directoryMapper.selectOne(directoryWrapper);
 
         toInsertUploadInfo.setFileName(fileName)
+                .setId(IdGeneratorUtil.generateId())
                 .setFileId(isExist.getId())
                 .setAbsolutePath(uploadCloudPath)
                 .setParentDirectoryId(parentDirObj.getDirectoryId())
@@ -249,6 +251,7 @@ public class FileUploadService{
         DirectoryDTO parentDirObj = directoryMapper.selectOne(directoryWrapper);
 
         toInsertUploadInfo.setFileName(fileName)
+                .setId(IdGeneratorUtil.generateId())
                 .setFileId(isExist.getId())
                 .setAbsolutePath(uploadCloudPath)
                 .setParentDirectoryId(parentDirObj.getDirectoryId())

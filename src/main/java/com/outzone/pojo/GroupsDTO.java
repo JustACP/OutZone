@@ -16,7 +16,7 @@ import lombok.experimental.Accessors;
 @TableName("groups")
 
 public class GroupsDTO {
-    @TableId(value = "id" ,type = IdType.ASSIGN_ID)
+    @TableId(value = "id", type = IdType.INPUT)
     Long id;
     @TableField("groupId")
     Long groupId;

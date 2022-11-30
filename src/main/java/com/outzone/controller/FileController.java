@@ -10,6 +10,7 @@ import com.outzone.pojo.vo.ContentVO;
 import com.outzone.service.CloudFilesServices;
 import com.outzone.service.FileUploadService;
 import com.outzone.service.SecurityContextService;
+import com.outzone.util.IdGeneratorUtil;
 import com.outzone.util.RedisUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -178,6 +179,7 @@ public class FileController {
 
             FileDTO newFile = fileMapper.selectOne(new LambdaQueryWrapper<FileDTO>()
                     .eq(FileDTO::getMd5,file.getIdentifier()));
+
             if(Objects.isNull(newFile)){
                 newFile = new FileDTO();
                 newFile
@@ -187,14 +189,16 @@ public class FileController {
                         .setCount(0)
                         .setPhysicalPath(uploadFilePath+file.getIdentifier())
                         .setUploadtime(new Timestamp(new Date().getTime()))
+                        .setId(IdGeneratorUtil.generateId())
                         .setFileType(filePrefix);
                 fileMapper.insert(newFile);
             }
 
 
+
             //TODO 等前端是不是icon上传到合并请求里面
             if(Objects.isNull(icon)){
-                fileUploadService.setFileIcon(newFile);
+                newFile = fileUploadService.setFileIcon(newFile);
             }else{
                 String uploadIconPath = uploadFilePath + "icon/"+file.getIdentifier()+".png";
                 File iconFile = new File(uploadIconPath);
@@ -214,6 +218,8 @@ public class FileController {
 
             }
 
+
+            fileMapper.updateById(newFile);
 
             DirectoryDTO parentDirectoryDto = new DirectoryDTO();
             LambdaQueryWrapper<DirectoryDTO> directoryWrapper = new LambdaQueryWrapper<>();
@@ -525,7 +531,7 @@ public class FileController {
             tmp.setShareId(shareFileUUID)
                 .setPasswords(password)
                 .setUrl(shareUrl)
-                .setId(null)
+                .setId(IdGeneratorUtil.generateId())
                 .setUserId(requestUser.getId());
             shareMapper.insert(tmp);
         }
@@ -629,7 +635,7 @@ public class FileController {
 
 
         DirectoryDTO newDir =
-                new DirectoryDTO(null,parentDir.getDirectoryId(),(groupId!=-1)?groupId:requestUser.getId(),
+                new DirectoryDTO(IdGeneratorUtil.generateId(),parentDir.getDirectoryId(),(groupId!=-1)?groupId:requestUser.getId(),
                         dirName,destPath+dirName.substring(1),groupId!=-1);
 
         directoryMapper.insert(newDir);

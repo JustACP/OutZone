@@ -17,7 +17,7 @@ import java.sql.Timestamp;
 @Accessors(chain = true)
 @TableName("group_file")
 public class GroupFileDTO {
-    @TableId(value = "id" ,type = IdType.ASSIGN_ID)
+    @TableId(value = "id", type = IdType.INPUT)
     Long id;
     @TableField("userId")
     long userId;

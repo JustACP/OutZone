@@ -16,7 +16,7 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 public class DirectoryDTO {
 
-    @TableId(value = "directoryId" ,type = IdType.ASSIGN_ID)
+    @TableId(value = "directoryId", type = IdType.INPUT)
     Long directoryId;
     @TableField("parentDirectoryId")
     long parentDirectoryId;

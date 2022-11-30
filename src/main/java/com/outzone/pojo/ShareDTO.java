@@ -15,7 +15,7 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 @TableName(value = "share")
 public class ShareDTO {
-    @TableId(value = "id",type = IdType.ASSIGN_ID)
+    @TableId(value = "id",  type = IdType.INPUT)
     Long id;
     @TableField(value = "shareId")
     String shareId;

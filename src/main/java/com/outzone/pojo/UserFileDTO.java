@@ -17,7 +17,7 @@ import java.sql.Timestamp;
 @NoArgsConstructor
 @Accessors(chain = true)
 public class UserFileDTO {
-    @TableId(value = "id" ,type = IdType.ASSIGN_ID)
+    @TableId(value = "id", type = IdType.INPUT)
     Long id;
     @TableField("userId")
     long userId;
