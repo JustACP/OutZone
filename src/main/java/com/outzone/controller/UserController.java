@@ -1,8 +1,12 @@
 package com.outzone.controller;
 
 import com.outzone.mapper.UserFileMapper;
-import com.outzone.pojo.*;
+import com.outzone.mapper.UserMapper;
+import com.outzone.pojo.ResponseResult;
+import com.outzone.pojo.StaticValue;
+import com.outzone.pojo.UserDTO;
 import com.outzone.pojo.vo.LoginUserVO;
+import com.outzone.pojo.vo.UserVO;
 import com.outzone.service.LoginService;
 import com.outzone.service.SecurityContextService;
 import org.springframework.http.HttpStatus;
@@ -11,11 +15,13 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.mail.MessagingException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Objects;
@@ -31,10 +37,45 @@ public class UserController {
     SecurityContextService securityContextService;
     @Resource
     UserFileMapper userFileMapper;
+    @Resource
+    UserMapper userMapper;
+
+    @GetMapping("/getUserInfo")
+    @ResponseBody
+//    @PreAuthorize("hasAuthority('files:manage')")
+    public ResponseResult getUserInfo() {
+        System.out.println(securityContextService.getUserPrivileges());
+        UserDTO requestUser = securityContextService.getUserFromContext().getUserDTO();
+        requestUser = userMapper.selectById(requestUser.getId());
+        UserVO userInfo = UserVO.convertByUserDTO(requestUser);
+        ResponseResult res = new ResponseResult(HttpStatus.OK.value(), "请求成功", userInfo);
+        return res;
+    }
+
+    @PostMapping("/changeUserIcon")
+    @ResponseBody
+    public ResponseResult changeUserIcon(@RequestParam MultipartFile file) throws IOException {
+        UserDTO requestUser = securityContextService.getUserFromContext().getUserDTO();
+
+        String fileName = requestUser.getId() +
+                file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf('.'));
+        String fullFilePath = StaticValue.userIconUploadPath + fileName;
+        File icon = new File(fullFilePath);
+        if (icon.getParentFile().exists()) {
+            icon.getParentFile().mkdirs();
+        }
+
+        try {
+            file.transferTo(icon);
+            String iconUrl = StaticValue.url + "/icon/user/" + fileName;
+            return new ResponseResult(HttpStatus.OK.value(), "请求成功");
+        } catch (IOException e) {
+            e.printStackTrace();
+            return new ResponseResult(HttpStatus.NOT_FOUND.value(), "请求失败");
+        }
 
 
-
-
+    }
     @RequestMapping("/login")
     @ResponseBody
     public ResponseResult login(@RequestBody UserDTO userDTO, HttpServletRequest request, HttpServletResponse response){
