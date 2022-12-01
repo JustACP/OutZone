@@ -269,22 +269,22 @@ public class FileUploadService{
         newFile.setFileType(newFile.getFileType().toLowerCase());
         String type = newFile.getFileType();
         if(type.equals("apk")){
-            newFile.setIcon(StaticValue.url + "/icon/apk.png");
+            newFile.setIcon(StaticValue.url + "/icon/file/apk.png");
         } else if(StaticValue.audioPrefixSet.contains(type)){
-            newFile.setIcon(StaticValue.url + "/icon/audio.png");
+            newFile.setIcon(StaticValue.url + "/icon/file/audio.png");
 
         }else if(StaticValue.compressionPrefixSet.contains(type)) {
-            newFile.setIcon(StaticValue.url + "/icon/compression.png");
+            newFile.setIcon(StaticValue.url + "/icon/file/compression.png");
         }else if(type.equals("docx")){
-            newFile.setIcon(StaticValue.url + "/icon/docx.png");
+            newFile.setIcon(StaticValue.url + "/icon/file/docx.png");
         }else if(type.equals("pdf")){
-            newFile.setIcon(StaticValue.url + "/icon/pdf.png");
+            newFile.setIcon(StaticValue.url + "/icon/file/pdf.png");
         }else if(type.equals("txt")){
-            newFile.setIcon(StaticValue.url + "/icon/txt.png");
+            newFile.setIcon(StaticValue.url + "/icon/file/txt.png");
         }else if(type.equals("xls")){
-            newFile.setIcon(StaticValue.url + "/icon/xls.png");
+            newFile.setIcon(StaticValue.url + "/icon/file/xls.png");
         }else{
-            newFile.setIcon(StaticValue.url + "/icon/other.png");
+            newFile.setIcon(StaticValue.url + "/icon/file/other.png");
         }
 
         return newFile;

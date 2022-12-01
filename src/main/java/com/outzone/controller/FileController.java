@@ -16,7 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -165,15 +164,15 @@ public class FileController {
      */
     @PostMapping("/merge")
     @ResponseBody
-    public ResponseResult uploadSuccess(@RequestBody  UploadFileInfo file,MultipartFile icon){
+    public ResponseResult uploadSuccess(UploadFileInfo file, MultipartFile icon) {
         UserDTO requestUser = securityContextService.getUserFromContext().getUserDTO();
         ResponseResult res = fileUploadService.uploadSuccess(file);
         String filePrefix;
-        if(res.getCode() == HttpStatus.OK.value()){
-            try{
+        if (res.getCode() == HttpStatus.OK.value()) {
+            try {
                 filePrefix = file.getFilename().substring(file.getFilename().lastIndexOf(".") + 1);
-            }catch (StringIndexOutOfBoundsException e){
-                log.info("|file: \""+file.getFilename()+"\"| 该文件没有后缀名");
+            } catch (StringIndexOutOfBoundsException e) {
+                log.info("|file: \"" + file.getFilename() + "\"| 该文件没有后缀名");
                 filePrefix = "null";
             }
 
@@ -200,12 +199,12 @@ public class FileController {
             if(Objects.isNull(icon)){
                 newFile = fileUploadService.setFileIcon(newFile);
             }else{
-                String uploadIconPath = uploadFilePath + "icon/"+file.getIdentifier()+".png";
+                String uploadIconPath = uploadFilePath + "icon/media" + file.getIdentifier() + ".png";
                 File iconFile = new File(uploadIconPath);
                 if(!iconFile.getParentFile().exists()) iconFile.getParentFile().mkdirs();
                 try {
                     icon.transferTo(iconFile);
-                    newFile.setIcon(StaticValue.url+"/icon/"+file.getIdentifier()+".png");
+                    newFile.setIcon(StaticValue.url + "/icon/media" + file.getIdentifier() + ".png");
                 } catch (IOException e) {
                     log.error("|user: "+requestUser.getId()+" |fileMd5:"+file.getIdentifier()+"|icon上传出现错误|");
                     res.setMsg("icon上传出现错误");
