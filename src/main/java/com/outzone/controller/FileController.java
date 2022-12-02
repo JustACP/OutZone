@@ -782,11 +782,31 @@ public class FileController {
             if (contentVO.getName().equals(newFileName) &&
                     contentVO.getId() != dirId) return forbidden;
         }
-
-        if (renamedir.getAbsolutePath().equals(renamedir.getName())) {
+        String oldAbsolutePath = renamedir.getAbsolutePath();
+        if (oldAbsolutePath.equals(renamedir.getName())) {
             renamedir.setAbsolutePath(newFileName);
         } else {
             renamedir.setAbsolutePath(parent.getAbsolutePath() + newFileName.substring(1));
+        }
+        String nowAbsolutePath = renamedir.getAbsolutePath();
+        List<DirectoryDTO> directoryList = directoryMapper.getAllSubDir(oldAbsolutePath, groupId != -1,
+                (groupId != -1) ? groupId : requestUser.getId());
+        for (DirectoryDTO toUpdateDir : directoryList) {
+            toUpdateDir.setAbsolutePath(toUpdateDir.getAbsolutePath().replaceAll(oldAbsolutePath, nowAbsolutePath));
+            directoryMapper.updateById(toUpdateDir);
+        }
+        if (groupId == -1) {
+            List<UserFileDTO> userFileList = userFileMapper.getAllSubUserFileList(oldAbsolutePath, requestUser.getId());
+            for (UserFileDTO toUpdateFile : userFileList) {
+                toUpdateFile.setAbsolutePath(toUpdateFile.getAbsolutePath().replaceAll(oldAbsolutePath, nowAbsolutePath));
+                userFileMapper.updateById(toUpdateFile);
+            }
+        } else {
+            List<GroupFileDTO> groupFileList = groupFileMapper.getAllSubGroupFileList(oldAbsolutePath, groupId);
+            for (GroupFileDTO toUpdateFile : groupFileList) {
+                toUpdateFile.setAbsolutePath(toUpdateFile.getAbsolutePath().replaceAll(oldAbsolutePath, nowAbsolutePath));
+                groupFileMapper.updateById(toUpdateFile);
+            }
         }
         renamedir.setName(newFileName);
         directoryMapper.updateById(renamedir);
