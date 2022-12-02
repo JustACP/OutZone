@@ -613,29 +613,40 @@ public class FileController {
     @ResponseBody
     public ResponseResult createDir(@RequestBody String JSONString){
         ResponseResult ok = new ResponseResult(HttpStatus.OK.value(), "创建成功");
-        ResponseResult failed = new ResponseResult(HttpStatus.FORBIDDEN.value(),  "创建失败");
+        ResponseResult failed = new ResponseResult(HttpStatus.FORBIDDEN.value(), "创建失败");
         UserDTO requestUser = securityContextService.getUserFromContext().getUserDTO();
         String destPath = JSONObject.parseObject(JSONString).getString("destination");
         Long groupId = JSONObject.parseObject(JSONString).getLong("groupId");
         String dirName = JSONObject.parseObject(JSONString).getString("dirName");
-        if(dirName.equals("/") || dirName.isEmpty() || destPath.isEmpty()) return failed;
-        if(groupId != -1){
+        if (dirName.equals("///") || dirName.isEmpty() || destPath.isEmpty()) return failed;
+
+
+        if (groupId != -1) {
             GroupsDTO isUser = groupMapper.selectOne(new LambdaQueryWrapper<GroupsDTO>()
-                    .eq(GroupsDTO::getUserId,requestUser.getId())
-                    .eq(GroupsDTO::getGroupId,groupId));
-            if(Objects.isNull(isUser)) return failed;
+                    .eq(GroupsDTO::getUserId, requestUser.getId())
+                    .eq(GroupsDTO::getGroupId, groupId));
+            if (Objects.isNull(isUser)) return failed;
         }
 
 
         DirectoryDTO parentDir = directoryMapper.selectOne(new LambdaQueryWrapper<DirectoryDTO>()
-                .eq(DirectoryDTO::getAbsolutePath,destPath)
-                .eq(DirectoryDTO::getOwnerId,(groupId!=-1)?groupId:requestUser.getId())
-                .eq(DirectoryDTO::isGroupDirectory,groupId!=-1));
+                .eq(DirectoryDTO::getAbsolutePath, destPath)
+                .eq(DirectoryDTO::getOwnerId, (groupId != -1) ? groupId : requestUser.getId())
+                .eq(DirectoryDTO::isGroupDirectory, groupId != -1));
 
+        List<String> nowDirName = directoryMapper.getDirList(parentDir.getAbsolutePath(),
+                        (groupId != -1) ? groupId : requestUser.getId(), groupId != -1)
+                .stream()
+                .map(ContentVO::getName)
+                .collect(Collectors.toList());
+        int lengthOfDirName = nowDirName.size();
+        for (int i = 0; i < lengthOfDirName; i++) {
+            if (nowDirName.get(i).equals(dirName)) return failed;
+        }
 
         DirectoryDTO newDir =
-                new DirectoryDTO(IdGeneratorUtil.generateId(),parentDir.getDirectoryId(),(groupId!=-1)?groupId:requestUser.getId(),
-                        dirName,destPath+dirName.substring(1),groupId!=-1);
+                new DirectoryDTO(IdGeneratorUtil.generateId(), parentDir.getDirectoryId(), (groupId != -1) ? groupId : requestUser.getId(),
+                        dirName, destPath + dirName.substring(1), groupId != -1);
 
         directoryMapper.insert(newDir);
         return ok;
@@ -757,34 +768,27 @@ public class FileController {
         Long dirId = JSON.parseObject(JSONString).getLong("id");
         String newFileName = JSON.parseObject(JSONString).getString("newName");
 
-        DirectoryDTO renamedir  = directoryMapper.selectOne(new LambdaQueryWrapper<DirectoryDTO>()
-                .eq(DirectoryDTO::getDirectoryId,dirId)
-                .eq(DirectoryDTO::getOwnerId,(groupId !=-1)?groupId:requestUser.getId())
-                .eq(DirectoryDTO::isGroupDirectory,groupId!=-1));
+        DirectoryDTO renamedir = directoryMapper.selectOne(new LambdaQueryWrapper<DirectoryDTO>()
+                .eq(DirectoryDTO::getDirectoryId, dirId)
+                .eq(DirectoryDTO::getOwnerId, (groupId != -1) ? groupId : requestUser.getId())
+                .eq(DirectoryDTO::isGroupDirectory, groupId != -1));
 
-        if(Objects.isNull(renamedir)) return notFound;
+        if (Objects.isNull(renamedir)) return notFound;
         DirectoryDTO parent = directoryMapper.selectById(renamedir.getParentDirectoryId());
         List<ContentVO> nowDir = directoryMapper.getDirList(parent.getAbsolutePath(),
-                (groupId!=-1)?groupId:requestUser.getId(),groupId!=-1);
+                (groupId != -1) ? groupId : requestUser.getId(), groupId != -1);
 
-        for(int i = 0; i < nowDir.size();i++){
-            if(nowDir.get(i).getName().equals(newFileName) &&
-             nowDir.get(i).getId()!=dirId) return forbidden;
+        for (ContentVO contentVO : nowDir) {
+            if (contentVO.getName().equals(newFileName) &&
+                    contentVO.getId() != dirId) return forbidden;
         }
 
+        if (renamedir.getAbsolutePath().equals(renamedir.getName())) {
+            renamedir.setAbsolutePath(newFileName);
+        } else {
+            renamedir.setAbsolutePath(parent.getAbsolutePath() + newFileName.substring(1));
+        }
         renamedir.setName(newFileName);
-        String[] spiltOfPath = renamedir.getAbsolutePath().split("/");
-        String endName = "/";
-
-        List<String>param = Arrays.stream(spiltOfPath)
-                .filter(stringName -> !stringName.isEmpty())
-                .collect(Collectors.toList());
-
-        for(int i = 0; i < param.size() - 1;i++){
-            endName+=spiltOfPath[i]+"/";
-        }
-        endName+=newFileName.substring(1);
-        renamedir.setAbsolutePath(endName);
         directoryMapper.updateById(renamedir);
         return ok;
 

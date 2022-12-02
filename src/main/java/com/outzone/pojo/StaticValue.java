@@ -11,7 +11,7 @@ public class StaticValue {
     public static String url = "http://172.23.252.223:8085";
 
     public static String userIconUploadPath = "/home/re1ife/icon/user/";
-    public static String directoryIcon = url + "/icon/folder.png";
+    public static String directoryIcon = url + "/icon/file/folder.png";
     public static String[] audio = {"wav", "flac", "ape", "alac", "wavpack", "mp3", "aac", "ogg", "opus"};
     public static String[] media = {"mp4", "wmv", "flv", "avi", "mkv", "rmvb", "mov", "ogv"};
     public static String[] compression = {"zip", "rar", "7z", "gz"};
