@@ -1,5 +1,6 @@
 package com.outzone.controller;
 
+import com.alibaba.fastjson.JSON;
 import com.outzone.mapper.UserFileMapper;
 import com.outzone.mapper.UserMapper;
 import com.outzone.pojo.ResponseResult;
@@ -118,8 +119,8 @@ public class UserController {
     @PostMapping("/registerCode")
     @ResponseBody
     public ResponseResult verifiCode(@RequestBody UserDTO registerUserDTO) throws MessagingException, IOException {
-        SecurityContext context = SecurityContextHolder.getContext();
-        UserDTO loginUserDTO = (UserDTO) context.getAuthentication().getPrincipal();
+//        SecurityContext context = SecurityContextHolder.getContext();
+//        UserDTO loginUserDTO = (UserDTO) context.getAuthentication().getPrincipal();
 //        System.out.println(loginUserDTO.getUsername());
 
         return loginService.sendRegisterCode(registerUserDTO);
@@ -140,6 +141,26 @@ public class UserController {
         ok.setData(capacity);
         return ok;
 
+    }
+
+    @PostMapping("/sendForgetPasswordCode")
+    @ResponseBody
+    public ResponseResult sendForgetPasswordCode(@RequestBody UserDTO forgetUser) throws MessagingException, IOException {
+        return loginService.sendForgetPassowrdCode(forgetUser);
+    }
+
+    @PostMapping("/forgetPassword")
+    @ResponseBody
+    public ResponseResult forgetPassword(@RequestBody UserDTO forgetUser){
+        return loginService.changePassword(forgetUser,forgetUser.getPassword());
+    }
+
+    @GetMapping("/changePassword")
+    @ResponseBody
+    public ResponseResult forgetPassword(@RequestBody String JSONString){
+        String password = JSON.parseObject(JSONString).getString("password");
+        UserDTO toChangeUser = securityContextService.getUserFromContext().getUserDTO();
+        return loginService.changePassword(toChangeUser,password);
     }
 
 

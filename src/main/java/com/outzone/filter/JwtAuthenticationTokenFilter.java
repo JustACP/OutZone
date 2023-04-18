@@ -39,7 +39,7 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
         String userUUID;
         try {
             Claims tokenClaims = JwtUtil.praseJWT(token);
-//            System.out.println(tokenClaims.getSubject());
+            // System.out.println(tokenClaims.getSubject());
             userUUID = tokenClaims.getSubject();
         } catch (Exception e) {
             e.printStackTrace();
@@ -53,7 +53,7 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
         if(Objects.isNull(loginUserVO)){
             throw new RuntimeException("用户未登陆");
         }
-        //存入secuirityContextHolder
+        //存入SecuirityContextHolder
         //获取权限信息封装到Authentication
         UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(loginUserVO,null, loginUserVO.getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(authenticationToken);

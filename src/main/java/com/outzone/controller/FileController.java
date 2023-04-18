@@ -57,8 +57,7 @@ public class FileController {
     GroupMapper groupMapper;
     @Resource
     CloudFilesServices cloudFilesServices;
-    @Resource
-    UserMapper userMapper;
+
     @Resource
     RedisUtil redisUtil;
     @Resource
@@ -68,6 +67,7 @@ public class FileController {
 
 
     /**
+     *
      * 上传前调用(只调一次)，判断文件是否已经被上传完成，如果是，跳过，
      * 如果不是，判断是否传了一半，如果是，将缺失的分片编号返回，让前端传输缺失的分片即可
      */
@@ -77,9 +77,7 @@ public class FileController {
         UserDTO requestUser = securityContextService.getUserFromContext().getUserDTO();
 
         //采用NoContent 表示有要跳过的
-
         ResponseResult res = fileUploadService.checkFileAndChunks(fileParamsVO,response,requestUser);
-
         ResponseResult.writeByResponse(response,res);
 
 
@@ -91,6 +89,7 @@ public class FileController {
         UserDTO requestUser = securityContextService.getUserFromContext().getUserDTO();
         ResponseResult responseResult = new ResponseResult<>();
         if(fileUploadService.checkFile(fileParamsVO,requestUser)){
+
             responseResult.setCode(HttpStatus.OK.value());
             responseResult.setMsg("文件已存在");
             Map<String,Boolean> isSkip = new HashMap<>();
@@ -117,26 +116,7 @@ public class FileController {
 
     }
 
-    @GetMapping("/test")
 
-    public void test(HttpServletResponse response) throws IOException {
-        ResponseResult res = new ResponseResult<>(200,"123");
-
-
-        response.setHeader("Access-Control-Allow-Origin", "*");
-        response.setHeader("Cache-Control", "no-cache");
-        response.setCharacterEncoding("UTF-8");
-        response.setContentType("application/json");
-
-        response.setStatus(204);
-        PrintWriter writer = response.getWriter();
-        writer.write(JSON.toJSONString(res));
-        writer.flush();
-
-
-
-
-    }
 
 
     @PostMapping("/uploadIcon")
@@ -199,12 +179,12 @@ public class FileController {
             if(Objects.isNull(icon)){
                 newFile = fileUploadService.setFileIcon(newFile);
             }else{
-                String uploadIconPath = uploadFilePath + "icon/media" + file.getIdentifier() + ".png";
+                String uploadIconPath = uploadFilePath + "icon/media/" + file.getIdentifier() + ".png";
                 File iconFile = new File(uploadIconPath);
                 if(!iconFile.getParentFile().exists()) iconFile.getParentFile().mkdirs();
                 try {
                     icon.transferTo(iconFile);
-                    newFile.setIcon(StaticValue.url + "/icon/media" + file.getIdentifier() + ".png");
+                    newFile.setIcon(StaticValue.url + "/icon/media/" + file.getIdentifier() + ".png");
                 } catch (IOException e) {
                     log.error("|user: "+requestUser.getId()+" |fileMd5:"+file.getIdentifier()+"|icon上传出现错误|");
                     res.setMsg("icon上传出现错误");
@@ -275,7 +255,7 @@ public class FileController {
     public void auth(HttpServletRequest request,HttpServletResponse response){
         String url = request.getHeader("X-Original-URI");
         String []splitOfUrl = url.split("/");
-        UserDTO requestUser = securityContextService.getUserFromContext().getUserDTO();
+//        UserDTO requestUser = securityContextService.getUserFromContext().getUserDTO();
         String token = "download:"+url.substring(url.lastIndexOf("=")+1);
         String authUrl = redisUtil.getCacheObject(token);
         if(Objects.isNull(authUrl)){
@@ -307,6 +287,7 @@ public class FileController {
         FileDTO realFile;
         String nginxUrl;
         String token;
+
         if(groupId == -1){
             UserFileDTO userFileDTO = userFileMapper.selectOne(new LambdaQueryWrapper<UserFileDTO>()
                     .eq(UserFileDTO::getId,fileId)
@@ -316,8 +297,6 @@ public class FileController {
             realFile = fileMapper.selectOne(new LambdaQueryWrapper<FileDTO>()
                     .eq(FileDTO::getId,userFileDTO.getFileId()));
             if(Objects.isNull(realFile)) return result;
-
-
 
             nginxUrl = "/downloadFile/" + realFile.getMd5()+"/"
                     +realFile.getFilename()+"?renameto="+userFileDTO.getFileName();
@@ -341,11 +320,6 @@ public class FileController {
         token = UUID.randomUUID().toString();
         nginxUrl += "&token="+token;
         redisUtil.setCacheObject("download:"+token,nginxUrl,1,TimeUnit.DAYS);
-
-
-
-
-
         log.info("|操作: 下载请求|"+"|user: "+requestUser.getUsername()+"|文件： "+realFile.getMd5()+"|token: " +token);
         result.setCode(HttpStatus.OK.value());
         result.setMsg("文件存在");
@@ -363,10 +337,11 @@ public class FileController {
         UserDTO requestUser = securityContextService.getUserFromContext().getUserDTO();
         List<ContentVO> toMoveFiles = JSONArray.parseArray(JSON.toJSONString(JSONObject.parseObject(JSONString)
                 .get("files")),ContentVO.class);
+        //多文件移动
         String destPath = JSONObject.parseObject(JSONString).getString("destination");
 
         Long groupId = JSONObject.parseObject(JSONString).getLong("groupId");
-        ResponseResult result = new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "文件不存在");
+        ResponseResult<Object> result = new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "文件不存在");
 
         DirectoryDTO destination;
         if(!Objects.isNull(requestUser) && !toMoveFiles.isEmpty()){
@@ -408,13 +383,13 @@ public class FileController {
         Long groupId = JSONObject.parseObject(JSONString).getLong("groupId");
 
         ResponseResult result = new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "文件不存在");
-
         DirectoryDTO destination;
+        destination = directoryMapper.selectOne(new LambdaQueryWrapper<DirectoryDTO>()
+                .eq(DirectoryDTO::getOwnerId,requestUser.getId())
+                .eq(DirectoryDTO::getAbsolutePath,destPath)
+                .eq(DirectoryDTO::isGroupDirectory,groupId != -1));
+
         if(!Objects.isNull(requestUser) && !toCopyFiles.isEmpty()){
-            destination = directoryMapper.selectOne(new LambdaQueryWrapper<DirectoryDTO>()
-                    .eq(DirectoryDTO::getOwnerId,requestUser.getId())
-                    .eq(DirectoryDTO::getAbsolutePath,destPath)
-                    .eq(DirectoryDTO::isGroupDirectory,groupId != -1));
             if(Objects.isNull(destination)) return result;
 
 
@@ -487,14 +462,17 @@ public class FileController {
         String password = JSONObject.parse(JSONString).getString("password");
         List<ContentVO> shareContentList= JSONArray.parseArray(
                 JSON.toJSONString(JSONObject.parseObject(JSONString).get("files")), ContentVO.class);
+
         List<ShareDTO> shareList = shareContentList.stream()
                 .map(shareContent -> {return new ShareDTO().setFileOrDirectoryId(shareContent.getId())
                                                             .setDirectory(shareContent.isDirectoryType());})
                 .collect(Collectors.toList());
+
         List<Long> userFileId = shareList.stream()
                             .filter(shareDTO -> !shareDTO.isDirectory())
                             .map(shareDTO -> shareDTO.getFileOrDirectoryId())
                             .collect(Collectors.toList());
+
         List<Long> directoryId = shareList.stream()
                 .filter(shareDTO -> shareDTO.isDirectory())
                 .map(shareDTO -> shareDTO.getFileOrDirectoryId())
@@ -523,7 +501,7 @@ public class FileController {
 
         //运行速度 for>forEach>stream
         String shareFileUUID = UUID.randomUUID().toString().replaceAll("-","");
-        String shareUrl =StaticValue.url+"/share/"+shareFileUUID;
+        String shareUrl =StaticValue.url+"/api/file/share/"+shareFileUUID;
         for(int nowFileCount = 0; nowFileCount < shareList.size();nowFileCount++){
 
             ShareDTO tmp = shareList.get(nowFileCount);
@@ -532,8 +510,9 @@ public class FileController {
                 .setUrl(shareUrl)
                 .setId(IdGeneratorUtil.generateId())
                 .setUserId(requestUser.getId());
-            shareMapper.insert(tmp);
+             shareMapper.insert(tmp);
         }
+
         ok.setData(shareUrl);
         return ok;
     }
@@ -572,9 +551,9 @@ public class FileController {
                 .filter(shareDTO -> shareDTO.isDirectory())
                 .map(shareDTO -> shareDTO.getFileOrDirectoryId())
                 .collect(Collectors.toList());
-
-        List<ContentVO> res = directoryMapper.getDirListById(userDirectoryList);
-        res.addAll(userFileMapper.getUserFileListById(userFileList));
+        List<ContentVO> res = new ArrayList<>();
+        if(!userDirectoryList.isEmpty()) res.addAll(directoryMapper.getDirListById(userDirectoryList));
+        if(!userFileList.isEmpty()) res.addAll(userFileMapper.getUserFileListById(userFileList));
         ok.setData(res);
         return ok;
 
@@ -685,8 +664,11 @@ public class FileController {
         ResponseResult<List> ok = new ResponseResult(HttpStatus.OK.value(),"搜索文件");
         UserDTO requestUser = securityContextService.getUserFromContext().getUserDTO();
         List<ContentVO> res =  directoryMapper.searchDirByName((groupId != -1)?groupId:requestUser.getId(),fileName,groupId != -1);
+        res.stream().filter(dir -> !dir.getPath().equals("/")).collect(Collectors.toList());
         if(groupId == -1){
             res.addAll(userFileMapper.searchFilesByName(requestUser.getId(),fileName));
+        }else{
+            res.addAll(groupFileMapper.searchFilesByName(groupId,fileName));
         }
 
         ok.setData(res);
@@ -782,12 +764,14 @@ public class FileController {
             if (contentVO.getName().equals(newFileName) &&
                     contentVO.getId() != dirId) return forbidden;
         }
+
         String oldAbsolutePath = renamedir.getAbsolutePath();
         if (oldAbsolutePath.equals(renamedir.getName())) {
             renamedir.setAbsolutePath(newFileName);
         } else {
             renamedir.setAbsolutePath(parent.getAbsolutePath() + newFileName.substring(1));
         }
+
         String nowAbsolutePath = renamedir.getAbsolutePath();
         List<DirectoryDTO> directoryList = directoryMapper.getAllSubDir(oldAbsolutePath, groupId != -1,
                 (groupId != -1) ? groupId : requestUser.getId());
@@ -795,6 +779,7 @@ public class FileController {
             toUpdateDir.setAbsolutePath(toUpdateDir.getAbsolutePath().replaceAll(oldAbsolutePath, nowAbsolutePath));
             directoryMapper.updateById(toUpdateDir);
         }
+
         if (groupId == -1) {
             List<UserFileDTO> userFileList = userFileMapper.getAllSubUserFileList(oldAbsolutePath, requestUser.getId());
             for (UserFileDTO toUpdateFile : userFileList) {
@@ -808,6 +793,7 @@ public class FileController {
                 groupFileMapper.updateById(toUpdateFile);
             }
         }
+
         renamedir.setName(newFileName);
         directoryMapper.updateById(renamedir);
         return ok;

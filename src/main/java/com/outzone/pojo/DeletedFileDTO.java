@@ -11,25 +11,25 @@ import lombok.experimental.Accessors;
 
 import java.sql.Timestamp;
 
+@TableName("deleted_file")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@TableName("file")
 @Accessors(chain = true)
-public class FileDTO {
+public class DeletedFileDTO {
     @TableId(value = "id", type = IdType.INPUT)
-    long id;
-    String filename;
-    long count;
-    String md5;
-    @TableField("physicalPath")
-    String physicalPath;
-    @TableField("fileType")
-    String fileType;
-    Timestamp uploadtime;
-    @TableField("fileSize")
-    long fileSize;
-    @TableField("icon")
-    String icon;
+    Long id;
+    @TableField("userId")
+    long userId;
+    @TableField("fileId")
+    long fileId;
+    @TableField("parentDirectoryId")
+    long parentDirectoryId;
+    @TableField("absolutePath")
+    String absolutePath;
+    @TableField("uploadDate")
+    Timestamp uploadDate;
+    @TableField("fileName")
+    String fileName;
 
 }

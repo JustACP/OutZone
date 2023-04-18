@@ -12,10 +12,8 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.sql.Timestamp;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -40,6 +38,11 @@ public class CloudFilesServices {
             , Long groupId){
 
         okResult.setMsg("移动成功");
+        //目录不可以移动到子目录下面
+        if(destination.getAbsolutePath().contains(toMoveDir.getPath())){
+            return new ResponseResult(HttpStatus.FORBIDDEN.value(),"禁止移动文件夹到子文件夹内");
+        }
+
         List<ContentVO> destDirs =
                 directoryMapper.getDirList(destination.getAbsolutePath(),
                 (groupId != -1)?groupId:requestUser.getId() , groupId !=-1);
@@ -277,7 +280,10 @@ public class CloudFilesServices {
                 return notFountResult;
             }
 
+
+
             userFileMapper.deleteById(toDeleteFile.getId());
+            toDeleteFile.setId()
         }else{
             GroupsDTO userGroupRole = groupMapper.selectOne(new LambdaQueryWrapper<GroupsDTO>()
                     .eq(GroupsDTO::getGroupId,groupId)
@@ -326,38 +332,54 @@ public class CloudFilesServices {
                 ,(destGroupId != -1)?destGroupId:requestUser.getId());
 
         if(Objects.isNull(toCopyDirList)) return notFountResult;
-        HashMap<String,DirectoryDTO> copiedDirList = new HashMap<>();
+        HashMap<Long,DirectoryDTO> copiedDirList = new HashMap<>();
         DirectoryDTO allParentDir = directoryMapper.selectById(toCopyDir.getParentId());
+        Queue<DirectoryDTO> queue = new ArrayDeque<>();
         //插入新的目录
         for(DirectoryDTO copyTmp : toCopyDirList){
 
             if(copyTmp.getAbsolutePath().equals(toCopyDir.getPath())){
+
+                copiedDirList.put(copyTmp.getDirectoryId(),copyTmp);
+                copyTmp.setDirectoryId(IdGeneratorUtil.generateId());
+                copyTmp.setParentDirectoryId((destination.getDirectoryId()));
+
                 copyTmp.setAbsolutePath(destination.getAbsolutePath()+copyTmp.getName().substring(1));
 
+                directoryMapper.insert(copyTmp);
             }else if(copyTmp.getAbsolutePath().equals("/")){
                 return notFountResult;
             } else {
-                if(allParentDir.getAbsolutePath().equals("/")){
-                    copyTmp.setAbsolutePath(destination.getAbsolutePath()+copyTmp.getAbsolutePath().substring(1));
-                } else {
-                    copyTmp.setAbsolutePath(copyTmp.getAbsolutePath().replaceAll(allParentDir.getAbsolutePath(), destination.getAbsolutePath()));
-                }
+                queue.add(copyTmp);
             }
-            copyTmp.setDirectoryId(IdGeneratorUtil.generateId());
-            copyTmp.setParentDirectoryId((destination.getDirectoryId()));
 
-            copiedDirList.put(copyTmp.getAbsolutePath(),copyTmp);
-
-            directoryMapper.insert(copyTmp);
         }
+        while(!queue.isEmpty()){
+            DirectoryDTO tmp = queue.remove();
+            if(copiedDirList.containsKey(tmp.getParentDirectoryId())){
 
+                if(allParentDir.getAbsolutePath().equals("/")){
+                    tmp.setAbsolutePath(destination.getAbsolutePath()+tmp.getAbsolutePath().substring(1));
+                } else {
+                    tmp.setAbsolutePath(tmp.getAbsolutePath().replaceAll(allParentDir.getAbsolutePath(), destination.getAbsolutePath()));
+                }
+                copiedDirList.put(tmp.getDirectoryId(),tmp);
+                tmp.setDirectoryId(IdGeneratorUtil.generateId());
+                tmp.setParentDirectoryId(copiedDirList.get(tmp.getParentDirectoryId()).getDirectoryId());
+
+
+                directoryMapper.insert(tmp);
+            }else{
+                queue.add(tmp);
+            }
+        }
 
         if(destGroupId == -1L){
 
             List<UserFileDTO> toCopyUserFileList = userFileMapper.getAllSubUserFileList(toCopyDir.getPath(), requestUser.getId());
             if(Objects.isNull(toCopyUserFileList)) return okResult;
             for(UserFileDTO userFileTmp:toCopyUserFileList) {
-                userFileTmp.setId(null);
+
                 if (allParentDir.getAbsolutePath().equals("/") && !userFileTmp.getAbsolutePath().equals("/")) {
                     userFileTmp.setAbsolutePath(destination.getAbsolutePath() + userFileTmp.getAbsolutePath().substring(1));
                 } else if (allParentDir.getAbsolutePath().equals("/") && !userFileTmp.getAbsolutePath().equals("/")){
@@ -366,7 +388,7 @@ public class CloudFilesServices {
                     userFileTmp.setAbsolutePath(userFileTmp.getAbsolutePath().replaceAll(allParentDir.getAbsolutePath(), destination.getAbsolutePath()));
                 }
 
-                DirectoryDTO tmpParentDir = copiedDirList.get(userFileTmp.getAbsolutePath());
+                DirectoryDTO tmpParentDir = copiedDirList.get(userFileTmp.getParentDirectoryId());
                 userFileTmp.setParentDirectoryId(tmpParentDir.getDirectoryId());
                 userFileTmp.setUploadDate(new Timestamp(new Date().getTime()));
                 userFileTmp.setId(IdGeneratorUtil.generateId());
@@ -390,7 +412,7 @@ public class CloudFilesServices {
                 } else {
                     groupFileTmp.setAbsolutePath(groupFileTmp.getAbsolutePath().replaceAll(allParentDir.getAbsolutePath(), destination.getAbsolutePath()));
                 }
-                DirectoryDTO tmpParentDir = copiedDirList.get(groupFileTmp.getAbsolutePath());
+                DirectoryDTO tmpParentDir = copiedDirList.get(groupFileTmp.getParentDirectoryId());
                 groupFileTmp.setParentDirectoryId(tmpParentDir.getDirectoryId());
                 groupFileTmp.setUploadDate(new Timestamp(new Date().getTime()));
                 groupFileTmp.setUserId(requestUser.getId());

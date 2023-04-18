@@ -8,14 +8,15 @@ import java.util.List;
 public class StaticValue {
 
 
-    public static String url = "http://172.23.252.223:8085";
+//    public static String url = "http://172.23.252.223:8085";
+    public static String url = "http://file.re1ife.top";
 
     public static String userIconUploadPath = "/home/re1ife/icon/user/";
     public static String directoryIcon = url + "/icon/file/folder.png";
     public static String[] audio = {"wav", "flac", "ape", "alac", "wavpack", "mp3", "aac", "ogg", "opus"};
     public static String[] media = {"mp4", "wmv", "flv", "avi", "mkv", "rmvb", "mov", "ogv"};
     public static String[] compression = {"zip", "rar", "7z", "gz"};
-    public static String[] documents = {"docx", "doc", "ppt", "pptx", "xlx", "xlxs", "pdf"};
+    public static String[] documents = {"docx", "doc", "ppt", "pptx", "xlx", "xlxs", "pdf","txt"};
     public static String[] picture = {"jpg", "jpeg", "", "png", "gif", "tiff", "webp", "bmp"};
     public static List<String> fileTypeGroup = Arrays.asList("document", "other", "audio", "video", "picture");
 

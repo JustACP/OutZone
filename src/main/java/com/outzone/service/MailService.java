@@ -53,7 +53,7 @@ public class MailService {
         templateMailContent = templateMailContent.replaceAll("#code",code);
         templateMailContent = templateMailContent.replaceAll("#product","OutZone");
         templateMailContent = templateMailContent.replaceAll("#name",username);
-//        System.out.println(templateMailContent);
+
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper messageHelper = new MimeMessageHelper(message,true);
         messageHelper.setSubject(subject);

@@ -205,12 +205,12 @@ public class FileUploadService{
 
         FileDTO isExist = fileMapper.selectOne(lambdaQueryWrapper);
 
-        String parentDir = uploadCloudPath.substring(uploadCloudPath.lastIndexOf("/"));
+
         LambdaQueryWrapper<DirectoryDTO> directoryWrapper = new LambdaQueryWrapper<>();
 
         UserFileDTO toInsertUploadInfo = new UserFileDTO();
 
-        directoryWrapper.eq(DirectoryDTO::getAbsolutePath,parentDir)
+        directoryWrapper.eq(DirectoryDTO::getAbsolutePath,uploadCloudPath)
                 .eq(DirectoryDTO::isGroupDirectory,false)
                 .eq(DirectoryDTO::getOwnerId,userDTO.getId());
         DirectoryDTO parentDirObj = directoryMapper.selectOne(directoryWrapper);
@@ -241,12 +241,12 @@ public class FileUploadService{
 
         FileDTO isExist = fileMapper.selectOne(lambdaQueryWrapper);
 
-        String parentDir = uploadCloudPath.substring(uploadCloudPath.lastIndexOf("/"));
+
         LambdaQueryWrapper<DirectoryDTO> directoryWrapper = new LambdaQueryWrapper<>();
 
         GroupFileDTO toInsertUploadInfo = new GroupFileDTO();
 
-        directoryWrapper.eq(DirectoryDTO::getName,parentDir)
+        directoryWrapper.eq(DirectoryDTO::getName,uploadCloudPath)
                 .eq(DirectoryDTO::isGroupDirectory,true);
         DirectoryDTO parentDirObj = directoryMapper.selectOne(directoryWrapper);
 

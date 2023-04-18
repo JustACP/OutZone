@@ -32,6 +32,18 @@
         FROM group_file
         where (group_file.absolutePath LIKE #{path} AND group_file.groupId = #{groupId});
     </select>
+    <select id="searchFilesByName" resultMap="content">
+        <bind name="like" value="'%'+fileName+'%'"/>
+        SELECT
+        group_file.fileName,file.fileSize,
+        group_file.id,group_file.parentDirectoryId,
+        file.fileType,file.icon,group_file.absolutePath,
+        group_file.uploadDate
+        FROM group_file
+        INNER JOIN file
+        ON group_file.fileId = file.id
+        where (group_file.fileName LIKE #{like}) AND group_file.groupId = #{groupId};
+    </select>
 
 
     <resultMap id="content" type="com.outzone.pojo.vo.ContentVO">

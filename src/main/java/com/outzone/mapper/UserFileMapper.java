@@ -1,14 +1,17 @@
 package com.outzone.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.outzone.cache.RedisMybatisCache;
 import com.outzone.pojo.vo.ContentVO;
 import com.outzone.pojo.UserFileDTO;
+import org.apache.ibatis.annotations.CacheNamespace;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
 @Mapper
+
 public interface UserFileMapper extends BaseMapper<UserFileDTO> {
     void delAllSubUserFile(@Param(value = "nowPath")String nowPath,
                             @Param(value = "userId") Long userId);

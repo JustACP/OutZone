@@ -2,6 +2,7 @@ package com.outzone.service;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.api.R;
 import com.outzone.mapper.*;
 import com.outzone.pojo.*;
 import com.outzone.pojo.vo.LoginUserVO;
@@ -9,6 +10,7 @@ import com.outzone.util.IdGeneratorUtil;
 import com.outzone.util.JwtUtil;
 import com.outzone.util.RedisUtil;
 import com.outzone.util.VerifiCodeUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -30,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 @Transactional
+@Slf4j
 public class LoginService{
 
 
@@ -51,26 +54,28 @@ public class LoginService{
     UserFileMapper userFileMapper;
     @Resource
     DirectoryMapper directoryMapper;
+
     public ResponseResult register(UserDTO registerUserDTO) {
         ResponseResult reigisterResponse = new ResponseResult(HttpStatus.OK.value(),"注册成功");
-        if(redisUtil.getCacheObject("registerCode:"+ registerUserDTO.getMailAddress())
-                != registerUserDTO.getVerificationCode()){
+        log.info(redisUtil.getCacheObject("registerMail:"+ registerUserDTO.getMailAddress()));
+        if(!redisUtil.getCacheObject("registerMail:"+ registerUserDTO.getMailAddress()).equals(registerUserDTO.getVerificationCode())){
+
             reigisterResponse.setCode(HttpStatus.PRECONDITION_FAILED.value());
             reigisterResponse.setMsg("验证码错误");
             return reigisterResponse;
         }
 
-
+        String oldPassword  = registerUserDTO.getPassword();
 
         //设置注册用户的基本信息 等待下一步验证
-        redisUtil.deleteObject("registerCode:"+ registerUserDTO.getMailAddress());
+        redisUtil.deleteObject("registerMail:"+ registerUserDTO.getMailAddress());
         registerUserDTO.setPassword(new BCryptPasswordEncoder().encode(registerUserDTO.getPassword()));
         Timestamp nowDateTime = new Timestamp(new Date().getTime());
         registerUserDTO.setRegisterTime(nowDateTime);
         registerUserDTO.setStatus(1);
         registerUserDTO.setId(IdGeneratorUtil.generateId());
         userMapper.insert(registerUserDTO);
-        userRoleMapper.setUserRole(registerUserDTO.getId(),2L);
+        userRoleMapper.setUserRole(registerUserDTO.getId(),1L);
         registerUserDTO = userMapper.selectOne(new LambdaQueryWrapper<UserDTO>().eq(UserDTO::getUsername,registerUserDTO.getUsername()));
         DirectoryDTO userBasicDir = new DirectoryDTO();
         userBasicDir.setParentDirectoryId(0)
@@ -83,7 +88,7 @@ public class LoginService{
 
         //先登陆一手
         UsernamePasswordAuthenticationToken  authenticationToken =
-                new UsernamePasswordAuthenticationToken(registerUserDTO.getUsername(), registerUserDTO.getPassword());
+                new UsernamePasswordAuthenticationToken(registerUserDTO.getUsername(),oldPassword);
 
         Authentication authenticate = authenticationManager.authenticate(authenticationToken);
 
@@ -164,5 +169,55 @@ public class LoginService{
         redisUtil.setCacheObject("registerMail:"+ registerUserDTO.getMailAddress(),registerCode,5,TimeUnit.MINUTES);
         mailService.sendTemplateMessage("OutZone注册验证码", registerUserDTO.getMailAddress(),registerCode,"新用户");
         return  registerCodeResponse;
+    }
+
+
+    public ResponseResult sendForgetPassowrdCode(UserDTO registerUserDTO) throws MessagingException, IOException {
+        ResponseResult forgetPasswordCodeResponse = new ResponseResult(HttpStatus.OK.value(),"发送成功");
+        //判断邮箱 和 用户名是否被占用
+        LambdaQueryWrapper<UserDTO> queryWrapper = new LambdaQueryWrapper<UserDTO>();
+        queryWrapper.eq(UserDTO::getMailAddress, registerUserDTO.getMailAddress())
+                .or()
+                .eq(UserDTO::getUsername, registerUserDTO.getUsername());
+        UserDTO isExist = userMapper.selectOne(queryWrapper);
+
+        if(Objects.isNull(isExist)){
+            forgetPasswordCodeResponse.setCode(HttpStatus.CONFLICT.value());
+            forgetPasswordCodeResponse.setMsg("用户名或者邮箱不存在");
+            return forgetPasswordCodeResponse;
+
+        }
+        String forgetPasswordCode = VerifiCodeUtil.generateVerifiCode();
+        redisUtil.setCacheObject("forgetMail:"+ registerUserDTO.getMailAddress(),forgetPasswordCode,5,TimeUnit.MINUTES);
+        mailService.sendTemplateMessage("OutZone忘记密码验证码", registerUserDTO.getMailAddress(),forgetPasswordCode,isExist.getUsername());
+        return  forgetPasswordCodeResponse;
+    }
+
+
+    public ResponseResult changePassword(UserDTO toChangePassword,String newPassword){
+        ResponseResult ok = new ResponseResult(HttpStatus.OK.value(),"更改成功");
+        ResponseResult failed =  new ResponseResult(HttpStatus.NOT_FOUND.value(),"更改失败");
+
+        // 忘记密码更改密码 和 主动更改密码
+        UserDTO isExist = userMapper.selectOne(new LambdaQueryWrapper<UserDTO>()
+                .eq(UserDTO::getUsername,toChangePassword.getUsername()));
+        if(Objects.isNull(isExist)){
+            return failed;
+        }
+
+        if(!isExist.getPassword().equals(toChangePassword.getPassword())){
+            String forgetCode = redisUtil.getCacheObject("forgetMail:"+toChangePassword.getMailAddress());
+            if(!forgetCode.equals(toChangePassword.getVerificationCode())){
+                return failed;
+            }
+            toChangePassword.setPassword(new BCryptPasswordEncoder().encode(newPassword));
+
+        }else{
+            toChangePassword.setPassword(new BCryptPasswordEncoder().encode(newPassword));
+        }
+        userMapper.updateById(toChangePassword);
+        return ok;
+
+
     }
 }

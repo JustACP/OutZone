@@ -32,6 +32,7 @@ public class MergeUtil {
      * @return file
      * */
     public static File mergeFile(String uploadPath,String chunkPath,String mergePath,String fileName){
+
         File file = new File(chunkPath);
         log.info("开始合并");
         List<File> chunkFileList = chunkFileList(file);
@@ -102,3 +103,4 @@ public class MergeUtil {
         return chunkFileList;
     }
 }
+

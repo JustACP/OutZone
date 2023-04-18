@@ -40,12 +40,7 @@ public class JwtUtil {
 
 
 
-    /**
-     * 生成jtw
-     * @param subject token中要存放的数据（json格式）
-     * @param ttlMillis token超时时间
-     * @return
-     */
+
     public static JwtBuilder getJwtBuilder(String subject, Long ttlMills,String uuid){
         SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.HS256;
         SecretKey secretKey = generalKey();

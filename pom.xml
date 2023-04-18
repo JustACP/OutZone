@@ -90,7 +90,7 @@
 		<dependency>
 			<groupId>commons-fileupload</groupId>
 			<artifactId>commons-fileupload</artifactId>
-			<version>1.4</version>
+			<version>1.5</version>
 		</dependency>
 		<dependency>
 			<groupId>commons-io</groupId>
@@ -107,6 +107,7 @@
 			<artifactId>httpcore</artifactId>
 			<version>4.4.10</version>
 		</dependency>
+
 	</dependencies>
 
 	<build>
