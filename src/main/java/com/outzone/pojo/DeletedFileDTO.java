@@ -16,7 +16,8 @@ import java.sql.Timestamp;
 @AllArgsConstructor
 @NoArgsConstructor
 @Accessors(chain = true)
-public class DeletedFileDTO {
+public class DeletedFileDTO{
+
     @TableId(value = "id", type = IdType.INPUT)
     Long id;
     @TableField("userId")

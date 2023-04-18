@@ -7,6 +7,7 @@ import com.outzone.pojo.*;
 import com.outzone.pojo.vo.ContentVO;
 import com.outzone.util.IdGeneratorUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -29,6 +30,8 @@ public class CloudFilesServices {
     GroupFileMapper groupFileMapper;
     @Resource
     UserMapper userMapper;
+    @Resource
+    DeletedFileMapper deletedFileMapper;
 
     ResponseResult notFountResult = new ResponseResult<>(HttpStatus.NOT_FOUND.value(),"文件不存在");
     ResponseResult forbiddenResult= new ResponseResult<>(HttpStatus.FORBIDDEN.value(),"无权访问");
@@ -283,7 +286,10 @@ public class CloudFilesServices {
 
 
             userFileMapper.deleteById(toDeleteFile.getId());
-            toDeleteFile.setId()
+            DeletedFileDTO delFile = new DeletedFileDTO();
+            BeanUtils.copyProperties(toDeleteFile,delFile);
+            deletedFileMapper.insert(delFile);
+
         }else{
             GroupsDTO userGroupRole = groupMapper.selectOne(new LambdaQueryWrapper<GroupsDTO>()
                     .eq(GroupsDTO::getGroupId,groupId)
@@ -662,4 +668,20 @@ public class CloudFilesServices {
         return okResult;
 
     }
+
+    public ResponseResult recoveryDelFiles(List<Long> ids){
+        List<DeletedFileDTO> delFileList = deletedFileMapper.selectBatchIds(ids);
+//        List<UserFileDTO> userFileDTOList = new ArrayList<>();
+
+        for(DeletedFileDTO tmp : delFileList){
+            UserFileDTO user = new UserFileDTO();
+            BeanUtils.copyProperties(tmp, user);
+            userFileMapper.insert(user);
+        }
+        okResult.setMsg("复制成功");
+        return okResult;
+
+
+    }
+
 }

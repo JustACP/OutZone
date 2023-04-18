@@ -46,6 +46,8 @@ public class FileController {
     @Resource
     UserFileMapper userFileMapper;
     @Resource
+    DeletedFileMapper deletedFileMapper;
+    @Resource
     GroupFileMapper groupFileMapper;
     @Resource
     FileMapper fileMapper;
@@ -799,6 +801,27 @@ public class FileController {
         return ok;
 
     }
+
+    @GetMapping("/getRecyclingBin")
+    public ResponseResult getRecyclingBin(){
+        UserDTO requestUser = securityContextService.getUserFromContext().getUserDTO();
+        LambdaQueryWrapper<DeletedFileDTO> wrapper = new LambdaQueryWrapper();
+        wrapper.eq(DeletedFileDTO::getUserId, requestUser.getId());
+        List<DeletedFileDTO> deletedFileDTOList = deletedFileMapper.selectList(wrapper);
+        ResponseResult res = new ResponseResult(HttpStatus.OK.value(), "操作成功",deletedFileDTOList);
+
+        return res;
+    }
+
+    @PostMapping("/recover")
+    public ResponseResult recovery(String jsonString){
+        List<Long> ids = JSONArray.parseArray(jsonString, Long.class);
+
+        return cloudFilesServices.recoveryDelFiles(ids);
+
+
+    }
+
 
 
 
